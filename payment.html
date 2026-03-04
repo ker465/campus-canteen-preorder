@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment · Campus Canteen</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0f0d0b;
+            --surface: #1a1612;
+            --card: #221e19;
+            --border: #2e2820;
+            --amber: #f5a623;
+            --amber-dark: #c47f0a;
+            --amber-glow: rgba(245, 166, 35, 0.15);
+            --text: #f0e8dc;
+            --muted: #8a7d6b;
+            --green: #4caf80;
+            --green-glow: rgba(76,175,128,0.12);
+            --error: #ef5350;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.5;
+        }
+
+        /* ── HEADER ─────────────────────────── */
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(15,13,11,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 68px;
+        }
+
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo-icon {
+            width: 36px; height: 36px; background: var(--amber);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        .logo h1 { font-family: 'Playfair Display', serif; font-size: 1.3rem; }
+        .logo span { color: var(--amber); }
+
+        .back-btn {
+            background: none; border: 1px solid var(--border);
+            color: var(--muted); font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem; padding: 7px 14px; border-radius: 8px;
+            cursor: pointer; transition: border-color 0.2s, color 0.2s;
+        }
+        .back-btn:hover { border-color: var(--amber); color: var(--text); }
+
+        /* ── LAYOUT ─────────────────────────── */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+            padding: 40px 32px;
+            max-width: 980px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* ── SECTION TITLES ─────────────────────────── */
+        .section-eyebrow {
+            font-size: 0.7rem; font-weight: 600;
+            letter-spacing: 0.14em; text-transform: uppercase;
+            color: var(--amber); margin-bottom: 6px;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem; font-weight: 900; margin-bottom: 20px;
+        }
+
+        /* ── PAYMENT METHODS ─────────────────────────── */
+        .method-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+
+        .method-card {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 20px;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 16px;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+            position: relative;
+        }
+
+        .method-card:hover {
+            border-color: var(--amber);
+            transform: translateX(4px);
+        }
+
+        .method-card.selected {
+            border-color: var(--amber);
+            box-shadow: 0 0 0 1px var(--amber-dark), 0 8px 24px rgba(0,0,0,0.3);
+            background: #2a2218;
+        }
+
+        .method-icon {
+            width: 48px; height: 48px;
+            background: var(--surface);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .method-card.selected .method-icon {
+            background: var(--amber-glow);
+        }
+
+        .method-info { flex: 1; }
+        .method-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 2px; }
+        .method-desc { font-size: 0.78rem; color: var(--muted); }
+
+        .method-radio {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            transition: border-color 0.2s;
+        }
+
+        .method-card.selected .method-radio {
+            border-color: var(--amber);
+        }
+
+        .method-radio::after {
+            content: '';
+            width: 10px; height: 10px;
+            background: var(--amber);
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .method-card.selected .method-radio::after { opacity: 1; }
+
+        /* UPI field toggle */
+        .upi-field {
+            display: none;
+            margin-top: 12px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .upi-field.show { display: block; }
+
+        /* ── ORDER SUMMARY ─────────────────────────── */
+        .summary-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            position: sticky;
+            top: 88px;
+            height: fit-content;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .summary-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-title {
+            font-size: 0.75rem; font-weight: 600;
+            letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .summary-canteen {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem; font-weight: 700;
+        }
+
+        .summary-items {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+
+        .summary-item {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .summary-item-left { display: flex; align-items: center; gap: 8px; }
+        .summary-item-name { font-size: 0.88rem; }
+        .summary-item-qty {
+            font-size: 0.72rem; color: var(--muted);
+            background: var(--surface); padding: 1px 7px; border-radius: 10px;
+        }
+        .summary-item-price { font-size: 0.88rem; color: var(--muted); }
+
+        .summary-meta {
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex; gap: 8px; flex-wrap: wrap;
+        }
+
+        .meta-chip {
+            font-size: 0.72rem; padding: 3px 10px;
+            border-radius: 20px; background: var(--surface);
+            color: var(--muted); border: 1px solid var(--border);
+        }
+
+        .summary-total {
+            padding: 20px 24px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .total-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+        .total-amount {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem; font-weight: 700;
+        }
+
+        .total-amount sup { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: var(--muted); }
+
+        /* ── PAY BUTTON ─────────────────────────── */
+        .pay-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--amber);
+            color: #0f0d0b;
+            border: none;
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 0.02em;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            margin-top: 20px;
+        }
+
+        .pay-btn:hover {
+            background: #ffb83f;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(245,166,35,0.35);
+        }
+
+        .pay-btn:active { transform: translateY(0); box-shadow: none; }
+
+        /* ── SUCCESS OVERLAY ─────────────────────────── */
+        .success-overlay {
+            position: fixed; inset: 0;
+            background: rgba(15,13,11,0.95);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 200;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.4s;
+        }
+
+        .success-overlay.show { opacity: 1; pointer-events: all; }
+
+        .success-box {
+            text-align: center;
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.7); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        .success-icon {
+            font-size: 4rem; margin-bottom: 16px; display: block;
+        }
+
+        .success-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem; font-weight: 900; margin-bottom: 8px;
+        }
+
+        .success-sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 8px; }
+
+        .token-display {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--amber-glow);
+            border: 1px solid var(--amber-dark);
+            padding: 10px 24px; border-radius: 40px;
+            margin: 16px 0 28px;
+        }
+
+        .token-label-small { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+        .token-num { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--amber); }
+
+        .go-orders-btn {
+            padding: 13px 32px;
+            background: var(--amber); color: #0f0d0b;
+            border: none; border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem; font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+        }
+        .go-orders-btn:hover { background: #ffb83f; transform: translateY(-2px); }
+
+        /* ── RESPONSIVE ─────────────────────────── */
+        @media (max-width: 700px) {
+            main { grid-template-columns: 1fr; padding: 24px 16px; }
+            header { padding: 0 16px; }
+            .summary-card { position: static; }
+        }
+
+        /* ── QR CODE ─────────────────────────── */
+        .qr-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 0 4px;
+        }
+
+        .qr-label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        #qrCode canvas, #qrCode img {
+            border-radius: 12px;
+            padding: 10px;
+            background: #fff;
+            display: block;
+        }
+
+        .qr-upi-id {
+            font-size: 0.75rem;
+            color: var(--amber);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            background: var(--amber-glow);
+            padding: 3px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--amber-dark);
+        }
+
+        /* ── TOKEN BOARD ─────────────────────────── */
+        .token-board {
+            background: #1a1612;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            width: 280px;
+            margin: 0 auto 28px;
+        }
+
+        .token-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .token-row:last-child { border-bottom: none; }
+
+        .token-row-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--muted);
+        }
+
+        .token-row-num {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .token-row.serving .token-row-num { color: var(--muted); }
+        .token-row.mine    .token-row-num { color: var(--amber); font-size: 1.8rem; }
+        .token-row.ahead   .token-row-num { color: var(--text); }
+    </style>
+</head>
+<body>
+
+<script>
+    if(localStorage.getItem("isLoggedIn") !== "true") window.location.href = "login.html";
+
+    const pending = JSON.parse(localStorage.getItem("pendingOrder"));
+    if(!pending) window.location.href = "index.html";
+</script>
+
+<header>
+    <div class="logo">
+        <div class="logo-icon">🍽</div>
+        <h1>Campus <span>Canteen</span></h1>
+    </div>
+    <button class="back-btn" onclick="window.location.href='index.html'">← Back to Menu</button>
+</header>
+
+<main>
+    <!-- LEFT: Payment methods -->
+    <div>
+        <div class="section-eyebrow">Step 2 of 2</div>
+        <div class="section-title">Choose Payment</div>
+
+        <div class="method-list">
+            <div class="method-card selected" onclick="selectMethod(this, 'Cash')">
+                <div class="method-icon">💵</div>
+                <div class="method-info">
+                    <div class="method-name">Cash on Pickup</div>
+                    <div class="method-desc">Pay at the counter when collecting your order</div>
+                </div>
+                <div class="method-radio"></div>
+            </div>
+
+            <div class="method-card" onclick="selectMethod(this, 'UPI')">
+                <div class="method-icon">📲</div>
+                <div class="method-info">
+                    <div class="method-name">UPI</div>
+                    <div class="method-desc">Pay via Google Pay, PhonePe, or any UPI app</div>
+                    <div class="upi-field" id="upiField">
+                        <div class="qr-wrapper" onclick="event.stopPropagation()">
+                            <div class="qr-label">Scan to pay ₹<span id="qrAmount"></span></div>
+                            <div id="qrCode"></div>
+                            <div class="qr-upi-id">canteen@ybl</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="method-radio"></div>
+            </div>
+
+        </div>
+
+        <button class="pay-btn" onclick="confirmPayment()">
+            Confirm & Place Order →
+        </button>
+    </div>
+
+    <!-- RIGHT: Order summary -->
+    <div class="summary-card" id="summaryCard">
+        <div class="summary-header">
+            <div class="summary-title">Order Summary</div>
+            <div class="summary-canteen" id="summaryCanteen"></div>
+        </div>
+        <div class="summary-items" id="summaryItems"></div>
+        <div class="summary-meta" id="summaryMeta"></div>
+        <div class="summary-total">
+            <div class="total-label">Total</div>
+            <div class="total-amount"><sup>₹</sup><span id="summaryTotal">0</span></div>
+        </div>
+    </div>
+</main>
+
+<!-- Success overlay -->
+<div class="success-overlay" id="successOverlay">
+    <div class="success-box">
+        <span class="success-icon">🎉</span>
+        <div class="success-title">Order Placed!</div>
+        <div class="success-sub" id="successSub">Your food is being prepared</div>
+        <div class="success-sub" id="successSlot" style="margin-bottom:20px;"></div>
+
+        <div class="token-board">
+            <div class="token-row serving">
+                <span class="token-row-label">Now Serving</span>
+                <span class="token-row-num" id="boardServing">–</span>
+            </div>
+            <div class="token-row mine">
+                <span class="token-row-label">Your Token</span>
+                <span class="token-row-num" id="boardMine">–</span>
+            </div>
+            <div class="token-row ahead">
+                <span class="token-row-label">Orders Ahead</span>
+                <span class="token-row-num" id="boardAhead">–</span>
+            </div>
+        </div>
+
+        <button class="go-orders-btn" id="goOrdersBtn" onclick="window.location.href='orders.html'">View My Orders →</button>
+        <div style="margin-top:12px;font-size:0.75rem;color:var(--muted);">Redirecting in <span id="countdown">3</span>s…</div>
+    </div>
+</div>
+
+<script>
+    let selectedPayment = "Cash";
+
+    // ── Populate summary ──────────────────────────
+    document.getElementById("summaryCanteen").innerText = pending.canteen;
+    document.getElementById("summaryTotal").innerText   = pending.total;
+
+    const itemsHTML = pending.items.map(i => `
+        <div class="summary-item">
+            <div class="summary-item-left">
+                <div class="summary-item-name">${i.name}</div>
+                <div class="summary-item-qty">× ${i.quantity}</div>
+            </div>
+            <div class="summary-item-price">₹${i.price * i.quantity}</div>
+        </div>`).join('');
+    document.getElementById("summaryItems").innerHTML = itemsHTML;
+
+    document.getElementById("summaryMeta").innerHTML = `
+        <span class="meta-chip">🏫 ${pending.canteen}</span>
+        <span class="meta-chip">⏱ ${pending.slot}</span>`;
+
+    // ── Payment method selection ──────────────────
+    let qrGenerated = false;
+
+    function selectMethod(card, method) {
+        document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedPayment = method;
+
+        const upiField = document.getElementById('upiField');
+        upiField.classList.toggle('show', method === 'UPI');
+
+        if(method === 'UPI' && !qrGenerated) {
+            generateQR();
+            qrGenerated = true;
+        }
+    }
+
+    function generateQR() {
+        const amount   = pending.total;
+        const upiId    = "canteen@ybl";
+        const name     = encodeURIComponent("Campus Canteen");
+        const note     = encodeURIComponent("Order - " + pending.canteen);
+        const upiStr   = `upi://pay?pa=${upiId}&pn=${name}&am=${amount}&cu=INR&tn=${note}`;
+
+        document.getElementById("qrAmount").innerText = amount;
+        document.getElementById("qrCode").innerHTML = "";
+
+        new QRCode(document.getElementById("qrCode"), {
+            text:           upiStr,
+            width:          160,
+            height:         160,
+            colorDark:      "#0f0d0b",
+            colorLight:     "#ffffff",
+            correctLevel:   QRCode.CorrectLevel.H
+        });
+    }
+
+    // ── Confirm & save order ──────────────────────
+    function confirmPayment() {
+
+
+        // Per-canteen token
+        const tokenKey    = `token_${pending.canteen}`;
+        const tokenNumber = parseInt(localStorage.getItem(tokenKey) || "0") + 1;
+        localStorage.setItem(tokenKey, tokenNumber);
+
+        const newOrder = {
+            orderID:       `ORD-${Date.now()}`,
+            tokenNumber:   tokenNumber,
+            canteen:       pending.canteen,
+            items:         pending.items,
+            total:         pending.total,
+            slot:          pending.slot,
+            paymentMethod: selectedPayment,
+            orderStatus:   "Preparing",
+            date:          new Date().toLocaleString()
+        };
+
+        const orders = JSON.parse(localStorage.getItem("orders")) || [];
+        orders.push(newOrder);
+        localStorage.setItem("orders", JSON.stringify(orders));
+        localStorage.removeItem("pendingOrder");
+
+        // Compute token board values
+        const servingKey    = `serving_${pending.canteen}`;
+        const nowServing    = parseInt(localStorage.getItem(servingKey) || "1");
+        const ordersAhead   = Math.max(0, tokenNumber - nowServing);
+
+        document.getElementById("boardServing").innerText = nowServing;
+        document.getElementById("boardMine").innerText    = tokenNumber;
+        document.getElementById("boardAhead").innerText   = ordersAhead;
+        document.getElementById("successSub").innerText   = `${pending.canteen} · ${selectedPayment}`;
+        document.getElementById("successSlot").innerText  = `Pickup at ${pending.slot}`;
+        document.getElementById("successOverlay").classList.add("show");
+
+        // Auto-redirect after 3 seconds with countdown
+        document.getElementById("goOrdersBtn").onclick = () => window.location.href = "orders.html";
+        let secs = 3;
+        const cd = setInterval(() => {
+            secs--;
+            const el = document.getElementById("countdown");
+            if(el) el.innerText = secs;
+            if(secs <= 0) {
+                clearInterval(cd);
+                window.location.href = "orders.html";
+            }
+        }, 1000);
+    }
+</script>
+</body>
+</html>

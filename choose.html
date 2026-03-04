@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Canteen · Campus Canteen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0f0d0b;
+            --surface: #1a1612;
+            --card: #221e19;
+            --border: #2e2820;
+            --amber: #f5a623;
+            --amber-dark: #c47f0a;
+            --amber-glow: rgba(245, 166, 35, 0.15);
+            --text: #f0e8dc;
+            --muted: #8a7d6b;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Grain overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.5;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15,13,11,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 68px;
+        }
+
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: var(--amber);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        .logo h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+        }
+        .logo span { color: var(--amber); }
+
+        .logout-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem;
+            padding: 7px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .logout-btn:hover { border-color: var(--amber); color: var(--text); }
+
+        /* ── MAIN ─────────────────────────── */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+        }
+
+        .step-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--amber);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-label::before, .step-label::after {
+            content: '';
+            width: 28px;
+            height: 1px;
+            background: var(--amber-dark);
+        }
+
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.8rem, 5vw, 2.8rem);
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 8px;
+            line-height: 1.1;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.95rem;
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        
+
+        /* ── CARDS ─────────────────────────── */
+        .canteen-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .canteen-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px 24px;
+            cursor: pointer;
+            transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s, background 0.25s;
+            animation: fadeUp 0.4s ease both;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .canteen-card:nth-child(2) { animation-delay: 0.1s; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .canteen-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 70% 30%, var(--amber-glow), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .canteen-card:hover {
+            border-color: var(--amber);
+            transform: translateY(-5px);
+            box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px var(--amber-dark);
+        }
+
+        .canteen-card:hover::after { opacity: 1; }
+
+        .canteen-card:active { transform: scale(0.98); }
+
+        .card-emoji {
+            font-size: 2.8rem;
+            margin-bottom: 16px;
+            display: block;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+        }
+
+        .card-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .meta-tag {
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: var(--surface);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+
+        .card-arrow {
+            position: absolute;
+            top: 24px; right: 24px;
+            width: 32px; height: 32px;
+            background: var(--amber-glow);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--amber);
+            font-size: 0.85rem;
+            opacity: 0;
+            transform: translateX(-6px);
+            transition: opacity 0.25s, transform 0.25s;
+        }
+
+        .canteen-card:hover .card-arrow {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* ── RESPONSIVE ─────────────────────────── */
+        @media (max-width: 500px) {
+            header { padding: 0 16px; }
+            .canteen-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<script>
+    if (localStorage.getItem("isLoggedIn") !== "true") {
+        window.location.href = "login.html";
+    }
+</script>
+
+<header>
+    <div class="logo">
+        <div class="logo-icon">🍽</div>
+        <h1>Campus <span>Canteen</span></h1>
+    </div>
+    <button class="logout-btn" onclick="logout()">Log out</button>
+</header>
+
+<main>
+    <div class="step-label">Step 1 of 2</div>
+    <h2>Pick your canteen</h2>
+    <p class="subtitle">Choose where you'd like to order from today</p>
+
+    <div class="canteen-grid">
+        <div class="canteen-card" onclick="choose('MRC', event)">
+            <span class="card-emoji">🏫</span>
+            <div class="card-name">MRC Canteen</div>
+            <div class="card-desc">Main campus classics — biryani, rolls, and quick bites.</div>
+            <div class="card-meta">
+                <span class="meta-tag">🍛 Biryani</span>
+                <span class="meta-tag">🌯 Rolls</span>
+                <span class="meta-tag">🥟 Snacks</span>
+            </div>
+            <div class="card-arrow">→</div>
+        </div>
+
+        <div class="canteen-card" onclick="choose('Khuksi', event)">
+            <span class="card-emoji">🍜</span>
+            <div class="card-name">Khuksi Corner</div>
+            <div class="card-desc">Quick noodles, fried rice and hot egg puffs.</div>
+            <div class="card-meta">
+                <span class="meta-tag">🍚 Fried Rice</span>
+                <span class="meta-tag">🍜 Maggie</span>
+                <span class="meta-tag">🥐 Puffs</span>
+            </div>
+            <div class="card-arrow">→</div>
+        </div>
+    </div>
+</main>
+
+<script>
+function choose(canteen, event) {
+    const cards = document.querySelectorAll(".canteen-card");
+
+    cards.forEach(card => card.style.pointerEvents = "none");
+
+    event.currentTarget.style.borderColor = "#f5a623";
+    event.currentTarget.style.transform = "scale(0.97)";
+
+    setTimeout(() => {
+        localStorage.setItem("selectedCanteen", canteen);
+        window.location.href = "index.html";
+    }, 400);
+}
+
+function logout() {
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("selectedCanteen");
+    window.location.href = "login.html";
+}
+</script>
+<script>
+    function logout() {
+        localStorage.removeItem("isLoggedIn");
+        localStorage.removeItem("selectedCanteen");
+        window.location.href = "login.html";
+    }
+</script>
+</body>
+</html>
