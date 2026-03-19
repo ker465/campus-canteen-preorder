@@ -311,22 +311,21 @@
     const sortOrders = sortOrdersByPriority;
 
     function updateFilterCounts() {
-        var all      = getMyOrders();
-        var today    = new Date().toDateString();
-        var todayAll = all.filter(o => new Date(o.date).toDateString() === today);
+        // Use ALL orders — avoid date parsing issues with toLocaleString() format
+        var all = getMyOrders();
 
         var counts = {
-            "All":       todayAll.length,
-            "Pending":   todayAll.filter(o => o.orderStatus === "Pending").length,
-            "Preparing": todayAll.filter(o => o.orderStatus === "Preparing").length,
-            "Ready":     todayAll.filter(o => o.orderStatus === "Ready").length,
-            "PickedUp":  todayAll.filter(o => ["Picked Up","Completed"].includes(o.orderStatus)).length,
+            "All":       all.length,
+            "Pending":   all.filter(o => o.orderStatus === "Pending").length,
+            "Preparing": all.filter(o => o.orderStatus === "Preparing").length,
+            "Ready":     all.filter(o => o.orderStatus === "Ready").length,
+            "PickedUp":  all.filter(o => ["Picked Up","Completed"].includes(o.orderStatus)).length,
         };
 
         Object.entries(counts).forEach(function([key, count]) {
             var el = document.getElementById("cnt-" + key);
             if (!el) return;
-            el.textContent = count || "";
+            el.textContent = count > 0 ? count : "";
             el.classList.toggle("has-orders", count > 0 && key !== "All" && key !== "PickedUp");
         });
     }
