@@ -521,8 +521,7 @@ function applySession(){
         }
     }
 }
-applySession();
-setInterval(applySession,5000);
+
 document.getElementById("canteenName").innerText=selectedCanteen;
 if(user) document.getElementById("userName").innerText="Hi, "+user.name;
 
@@ -577,7 +576,6 @@ function renderSpecial(items, catSpecials){
         var starCount=catItems.filter(function(i){ return i.isSpecial; }).length;
         catItems.forEach(function(i){ if(quantities[i.id]===undefined) quantities[i.id]=0; });
 
-        // Starred items first, then rest
         var starred=catItems.filter(function(i){ return i.isSpecial; });
         var rest=catItems.filter(function(i){ return !i.isSpecial; });
         var display=starred.concat(rest);
@@ -746,8 +744,27 @@ function renderMenu(){
 
 function handleAccToggle(el){ toggleSection(el.getAttribute("data-cat")); }
 
-renderMenu();
-setInterval(renderMenu,3000);
+// ✅ FIX: Wait for getCurrentSession to be defined before calling applySession
+function waitAndApply(){
+    if(typeof getCurrentSession !== "undefined"){
+        applySession();
+        setInterval(applySession, 5000);
+    } else {
+        setTimeout(waitAndApply, 50);
+    }
+}
+waitAndApply();
+
+// ✅ FIX: Wait for getCurrentSession to be defined before rendering menu
+function waitAndRender(){
+    if(typeof getCurrentSession !== "undefined"){
+        renderMenu();
+        setInterval(renderMenu, 3000);
+    } else {
+        setTimeout(waitAndRender, 50);
+    }
+}
+waitAndRender();
 
 function changeQty(id,delta){
     if(quantities[id]===undefined) quantities[id]=0;
