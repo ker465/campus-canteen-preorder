@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu · Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        .menu-layout { display:grid; grid-template-columns:320px 1fr; gap:24px; }
+        .add-card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:26px; position:sticky; top:84px; height:fit-content; transition:background var(--transition); }
+        .add-card h3 { font-size:1rem; font-weight:800; margin-bottom:20px; }
+        .menu-items-grid { display:flex; flex-direction:column; gap:12px; }
+        .item-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+        /* Category group */
+        .cat-group { margin-bottom:20px; }
+        .cat-group-header {
+            display:flex; align-items:center; justify-content:space-between;
+            margin-bottom:8px; padding:8px 14px; border-radius:12px;
+            border:1.5px solid var(--border); background:var(--light);
+            transition:background var(--transition), border-color 0.2s;
+        }
+        .cat-group-header.special {
+            background:rgba(245,166,35,0.08);
+            border-color:rgba(245,166,35,0.35);
+        }
+        /* Filter pill special star */
+        .pill-star {
+            display:inline-flex; align-items:center; justify-content:center;
+            margin-left:5px; cursor:pointer; font-size:0.78rem;
+            padding:1px 5px; border-radius:8px; transition:all 0.2s;
+            opacity:0.45;
+        }
+        .pill-star:hover { opacity:1; transform:scale(1.2); }
+        .pill-star.on { opacity:1; }
+        .filter-pill.cat-special {
+            background:rgba(245,166,35,0.12);
+            border-color:rgba(245,166,35,0.4);
+            color:var(--amber); font-weight:800;
+        }
+        /* Special category badge in pill */
+        @media(max-width:900px){ .menu-layout{grid-template-columns:1fr;} .add-card{position:static;} }
+    </style>
+</head>
+<body>
+<script>(function(){if(localStorage.getItem("adminTheme")==="dark")document.body.classList.add("dark");})()</script>
+<script src="admin.js"></script>
+<script>if(!localStorage.getItem("adminCanteen")) window.location.href="admin-login.html";</script>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-circle" id="sidebarIcon">🍽</div>
+        <div>
+            <div class="logo-name" id="sidebarName">Canteen</div>
+            <div class="logo-sub">Admin Panel</div>
+        </div>
+    </div>
+    <div class="nav-section">Main</div>
+    <a class="nav-link" href="admin-dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a class="nav-link" href="admin-orders.html"><span class="nav-icon">🧾</span> Orders</a>
+    <a class="nav-link active" href="admin-menu.html"><span class="nav-icon">🍽</span> Menu</a>
+    <a class="nav-link" href="admin-schedule.html"><span class="nav-icon">🕐</span> Schedule</a>
+    <div class="nav-section">Reports</div>
+    <a class="nav-link" href="admin-customers.html"><span class="nav-icon">👥</span> Customers</a>
+    <a class="nav-link" href="admin-reviews.html"><span class="nav-icon">⭐</span> Reviews</a>
+    <div class="sidebar-promo">
+        <span class="promo-icon">🍳</span>
+        <div class="promo-title">Add items quickly</div>
+        <div class="promo-sub">Use the form to add or update menu items</div>
+        <button class="promo-btn" onclick="document.getElementById('itemName').focus()">+ Add Item</button>
+    </div>
+    <div class="sidebar-footer">
+        <button class="logout-nav" onclick="adminLogout()"><span>🚪</span> Log out</button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Menu Management</h1>
+            <p>Add, edit and manage food items</p>
+        </div>
+        <div class="topbar-right">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button>
+            <span id="canteenBadge" style="font-size:0.75rem;font-weight:700;padding:5px 14px;border-radius:20px;background:var(--pink-light);color:var(--pink2)"></span>
+            <div class="admin-bell-wrap" id="adminBellWrap">
+                <button class="admin-bell-btn" id="adminBellBtn" title="New Orders">
+                    🔔
+                    <div class="admin-bell-badge" id="adminBellBadge">0</div>
+                </button>
+                <div class="admin-bell-dropdown" id="adminBellDropdown">
+                    <div class="bell-drop-header">
+                        <div class="bell-drop-title">🛒 Incoming Orders <span id="bellUnreadCount" style="font-size:0.72rem;color:var(--muted);font-weight:600"></span></div>
+                        <button class="bell-clear-btn" onclick="clearBellOrders()">Mark all read</button>
+                    </div>
+                    <div class="bell-drop-list" id="bellDropList"></div>
+                    <div class="bell-drop-footer"><a href="admin-orders.html">View all orders →</a></div>
+                </div>
+            </div>
+            <div class="admin-pill">
+                <div class="admin-avatar">A</div>
+                <div>
+                    <div class="admin-name" id="adminNameLabel">Admin</div>
+                    <div class="admin-role">Manager</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <!-- SKELETON -->
+        <div id="skeleton" style="display:block">
+            <div style="display:grid;grid-template-columns:320px 1fr;gap:24px">
+                <div class="sk-table" style="padding:24px;display:flex;flex-direction:column;gap:14px">
+                    <div class="sk" style="height:16px;width:120px"></div>
+                    <div style="display:flex;flex-direction:column;gap:6px"><div class="sk" style="height:10px;width:70px"></div><div class="sk" style="height:42px;border-radius:12px"></div></div>
+                    <div style="display:flex;flex-direction:column;gap:6px"><div class="sk" style="height:10px;width:70px"></div><div class="sk" style="height:42px;border-radius:12px"></div></div>
+                    <div style="display:flex;flex-direction:column;gap:6px"><div class="sk" style="height:10px;width:70px"></div><div class="sk" style="height:42px;border-radius:12px"></div></div>
+                    <div style="display:flex;flex-direction:column;gap:6px"><div class="sk" style="height:10px;width:70px"></div><div class="sk" style="height:42px;border-radius:12px"></div></div>
+                    <div class="sk" style="height:46px;border-radius:12px;margin-top:4px"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div class="sk-section-hdr"><div class="sk sk-title"></div><div class="sk sk-link"></div></div>
+                    <div class="sk-menu-item"><div class="sk sk-emoji"></div><div class="sk-item-info"><div class="sk sk-item-name"></div><div class="sk sk-item-meta"></div></div><div class="sk-item-btns"><div class="sk sk-pill"></div><div class="sk sk-icon-btn"></div><div class="sk sk-icon-btn"></div></div></div>
+                    <div class="sk-menu-item" style="animation-delay:0.1s"><div class="sk sk-emoji"></div><div class="sk-item-info"><div class="sk sk-item-name"></div><div class="sk sk-item-meta"></div></div><div class="sk-item-btns"><div class="sk sk-pill"></div><div class="sk sk-icon-btn"></div><div class="sk sk-icon-btn"></div></div></div>
+                    <div class="sk-menu-item" style="animation-delay:0.2s"><div class="sk sk-emoji"></div><div class="sk-item-info"><div class="sk sk-item-name"></div><div class="sk sk-item-meta"></div></div><div class="sk-item-btns"><div class="sk sk-pill"></div><div class="sk sk-icon-btn"></div><div class="sk sk-icon-btn"></div></div></div>
+                    <div class="sk-menu-item" style="animation-delay:0.3s"><div class="sk sk-emoji"></div><div class="sk-item-info"><div class="sk sk-item-name"></div><div class="sk sk-item-meta"></div></div><div class="sk-item-btns"><div class="sk sk-pill"></div><div class="sk sk-icon-btn"></div><div class="sk sk-icon-btn"></div></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="realContent" style="display:none">
+        <div class="menu-layout">
+
+            <!-- ADD / EDIT FORM -->
+            <div class="add-card">
+                <h3 id="formTitle">➕ Add New Item</h3>
+                <input type="hidden" id="editId">
+
+                <div class="form-group">
+                    <label class="form-label">Item Name</label>
+                    <input class="form-input" id="itemName" type="text" placeholder="e.g. Chicken Roll">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Price (₹)</label>
+                    <input class="form-input" id="itemPrice" type="number" placeholder="60" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Emoji</label>
+                    <input class="form-input" id="itemEmoji" type="text" placeholder="🌯" maxlength="2" style="font-size:1.2rem;text-align:center">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <!-- Normal dropdown (default view) -->
+                    <div id="catSelectWrap">
+                        <select class="form-select" id="itemCategory" style="width:100%" onchange="onCatChange(this.value)"></select>
+                    </div>
+                    <!-- Inline new-category input — swaps in when "Add New" selected -->
+                    <div id="newCatWrap" style="display:none">
+                        <div style="display:flex;gap:6px">
+                            <input class="form-input" id="newCatEmoji" type="text" placeholder="🥪" maxlength="2"
+                                style="width:48px;text-align:center;font-size:1.2rem;flex-shrink:0">
+                            <input class="form-input" id="newCatName" type="text" placeholder="New category name"
+                                style="flex:1" onkeydown="if(event.key==='Enter')addNewCategory()">
+                        </div>
+                        <div style="display:flex;gap:6px;margin-top:8px">
+                            <button class="btn btn-pink" onclick="addNewCategory()" style="flex:1;padding:11px;font-size:0.9rem;font-weight:700">✓ Save Category</button>
+                            <button class="btn btn-ghost" onclick="cancelNewCat()" style="padding:11px 16px;font-size:0.9rem">✕</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mark as Special toggle -->
+                <div class="form-group" style="flex-direction:row;align-items:center;justify-content:space-between;background:rgba(245,166,35,0.06);border:1.5px solid rgba(245,166,35,0.2);border-radius:12px;padding:10px 14px">
+                    <div>
+                        <div style="font-size:0.78rem;font-weight:700">⭐ Mark as Daily Special</div>
+                        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">Shows in hero card for students</div>
+                    </div>
+                    <label style="position:relative;width:44px;height:24px;cursor:pointer;flex-shrink:0">
+                        <input type="checkbox" id="itemSpecial" style="opacity:0;width:0;height:0">
+                        <span id="specialSlider" style="position:absolute;inset:0;background:var(--border);border-radius:24px;transition:background 0.25s">
+                            <span id="specialThumb" style="position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.25s;box-shadow:0 1px 4px rgba(0,0,0,0.2)"></span>
+                        </span>
+                    </label>
+                </div>
+
+                <button class="btn btn-pink" id="saveBtn" onclick="saveItem()" style="width:100%;padding:13px;margin-top:6px;font-size:0.92rem">Add Item →</button>
+                <button class="btn btn-ghost" id="cancelBtn" onclick="cancelEdit()" style="width:100%;padding:11px;margin-top:8px;display:none">Cancel Edit</button>
+            </div>
+
+            <!-- MENU LIST -->
+            <div>
+                <div class="section-hdr">
+                    <div>
+                        <h2 id="listTitle">Menu</h2>
+                        <div style="font-size:0.78rem;color:var(--muted);margin-top:2px" id="itemCountLabel"></div>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-ghost btn-sm" onclick="resetToDefault()">↺ Reset to Default</button>
+                    </div>
+                </div>
+
+                <!-- Category filter pills — ☆ star = mark category as special -->
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="catFilterBar"></div>
+
+                <div class="menu-items-grid" id="menuList"></div>
+            </div>
+
+        </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="adminToast"><span id="toastIcon">✅</span><span id="toastMsg"></span></div>
+
+<script>
+    const activeCanteen = localStorage.getItem("adminCanteen") || "MRC";
+
+    // ── Branding ─────────────────────────────────────────────
+    (function(){
+        var map = { MRC:{name:"MRC Canteen",icon:"🏫"}, Khuksi:{name:"Khuksi Corner",icon:"🍜"} };
+        var L   = map[activeCanteen] || {name:activeCanteen, icon:"🍽"};
+        var b   = document.getElementById("canteenBadge");   if(b)  b.textContent  = L.icon + " " + L.name;
+        var sn  = document.getElementById("sidebarName");    if(sn) sn.textContent = L.name;
+        var si  = document.getElementById("sidebarIcon");    if(si) si.textContent = L.icon;
+        var an  = document.getElementById("adminNameLabel"); if(an) an.textContent = activeCanteen + " Admin";
+    })();
+
+    // ── Show content (fade skeleton out) ─────────────────────
+    function showContent() {
+        var sk = document.getElementById("skeleton");
+        var ct = document.getElementById("realContent");
+        if (!sk || !ct) return;
+        sk.style.transition = "opacity 0.3s ease";
+        sk.style.opacity = "0";
+        setTimeout(function(){ sk.style.display = "none"; ct.style.display = "block"; }, 300);
+    }
+
+    // ── Category management ───────────────────────────────────
+    const PRESET_CATS = ["Hot Beverages","Breakfast & Snacks","Rice Items","Dosa","Uttappam","Chinese","Curry"];
+
+    function getCategories() {
+        var saved = JSON.parse(localStorage.getItem("customCats_" + activeCanteen) || "[]");
+        return [...PRESET_CATS, ...saved.filter(function(c){ return !PRESET_CATS.includes(c); })];
+    }
+
+    function getCatSpecials() {
+        return JSON.parse(localStorage.getItem("catSpecials_" + activeCanteen) || "{}");
+    }
+
+    function buildCatDropdown(selectedCat) {
+        var cats = getCategories();
+        var sel  = document.getElementById("itemCategory");
+        if (!sel) return;
+        sel.innerHTML = cats.map(function(cat) {
+            return "<option value='" + cat + "'" + (cat === selectedCat ? " selected" : "") + ">" + cat + "</option>";
+        }).join("") + "<option value='__new__' style='font-weight:700;color:var(--pink2)'>➕ Add New Category</option>";
+        if (selectedCat && cats.includes(selectedCat)) sel.value = selectedCat;
+    }
+
+    function onCatChange(val) {
+        if (val === "__new__") {
+            // Reset select to first real cat while showing input
+            var cats = getCategories();
+            var sel  = document.getElementById("itemCategory");
+            if (sel && cats.length) sel.value = cats[0];
+            // Swap to inline input
+            document.getElementById("catSelectWrap").style.display = "none";
+            document.getElementById("newCatWrap").style.display    = "block";
+            document.getElementById("newCatName").value  = "";
+            document.getElementById("newCatEmoji").value = "";
+            setTimeout(function(){ document.getElementById("newCatName").focus(); }, 50);
+        }
+    }
+
+    function cancelNewCat() {
+        document.getElementById("newCatWrap").style.display    = "none";
+        document.getElementById("catSelectWrap").style.display = "block";
+        document.getElementById("newCatName").value  = "";
+        document.getElementById("newCatEmoji").value = "";
+        buildCatDropdown();
+    }
+
+    // Legacy alias
+    function hideNewCatInput() { cancelNewCat(); }
+
+    function addNewCategory() {
+        var name  = document.getElementById("newCatName").value.trim();
+        var emoji = document.getElementById("newCatEmoji").value.trim();
+        if (!name) { showToast("Enter a category name", false); return; }
+
+        var saved = JSON.parse(localStorage.getItem("customCats_" + activeCanteen) || "[]");
+        if (getCategories().includes(name)) { showToast("Category already exists", false); return; }
+
+        saved.push(name);
+        localStorage.setItem("customCats_" + activeCanteen, JSON.stringify(saved));
+
+        if (emoji) {
+            var icons = JSON.parse(localStorage.getItem("catIcons_" + activeCanteen) || "{}");
+            icons[name] = emoji;
+            localStorage.setItem("catIcons_" + activeCanteen, JSON.stringify(icons));
+        }
+
+        // Swap back to dropdown with new category selected
+        document.getElementById("newCatWrap").style.display    = "none";
+        document.getElementById("catSelectWrap").style.display = "block";
+        buildCatDropdown(name);
+        document.getElementById("itemCategory").value = name;
+        showToast("Category '" + name + "' added ✓");
+        renderCatFilter(getMenuItems(activeCanteen));
+    }
+
+    // ── Special toggle sync ───────────────────────────────────
+    document.addEventListener("DOMContentLoaded", function() {
+        var cb     = document.getElementById("itemSpecial");
+        var slider = document.getElementById("specialSlider");
+        var thumb  = document.getElementById("specialThumb");
+        if (!cb) return;
+        cb.addEventListener("change", function() {
+            slider.style.background = cb.checked ? "var(--pink)" : "var(--border)";
+            thumb.style.transform   = cb.checked ? "translateX(20px)" : "translateX(0)";
+        });
+    });
+
+    // ── Category filter bar with ☆ star special toggles ──────
+    var activeCatFilter = "All";
+
+    function renderCatFilter(items) {
+        var bar = document.getElementById("catFilterBar");
+        if (!bar) return;
+        var fromItems  = [...new Set(items.map(function(i){ return i.category; }).filter(Boolean))];
+        var customCats = JSON.parse(localStorage.getItem("customCats_" + activeCanteen) || "[]");
+        var allCats    = ["All", ...new Set([...fromItems, ...customCats])];
+        var specials   = getCatSpecials();
+
+        bar.innerHTML = allCats.map(function(cat) {
+            var isActive  = cat === activeCatFilter;
+            var isSpecial = !!(specials[cat]);
+            return "<span class='filter-pill" +
+                   (isActive ? " active" : "") + (isSpecial ? " cat-special" : "") + "' " +
+                   "data-cat='" + cat + "' onclick='handleCatPill(this)'>" +
+                   cat + "</span>";
+        }).join("");
+    }
+
+    function handleCatPill(el) {
+        activeCatFilter = el.getAttribute("data-cat");
+        renderMenu();
+        renderCatFilter(getMenuItems(activeCanteen));
+    }
+
+    function handlePillStar(e, el) {
+        e.stopPropagation();
+        var cat      = el.getAttribute("data-cat");
+        var specials = getCatSpecials();
+        var making   = !specials[cat];
+        if (making) {
+            specials[cat] = true;
+            showToast("⭐ " + cat + " is now Category of the Day!");
+        } else {
+            delete specials[cat];
+            showToast(cat + " special removed");
+        }
+        localStorage.setItem("catSpecials_" + activeCanteen, JSON.stringify(specials));
+        renderCatFilter(getMenuItems(activeCanteen));
+        renderMenu();
+    }
+
+    function resetToDefault() {
+        if (!confirm("Reset to full Amity canteen menu? This will replace all current items.")) return;
+        localStorage.removeItem("menu_" + activeCanteen);
+        activeCatFilter = "All";
+        showToast("Menu reset to Amity default ✓");
+        renderMenu();
+    }
+
+    // Init dropdown
+    (function(){
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", function(){ buildCatDropdown(); });
+        } else {
+            buildCatDropdown();
+        }
+    })();
+
+    // ── Main render ───────────────────────────────────────────
+    function renderMenu() {
+        var allItems = getMenuItems(activeCanteen);
+        renderCatFilter(allItems);
+
+        var items = activeCatFilter === "All"
+            ? allItems
+            : allItems.filter(function(i){ return i.category === activeCatFilter; });
+
+        document.getElementById("listTitle").textContent      = activeCatFilter === "All" ? activeCanteen + " Menu" : activeCatFilter;
+        document.getElementById("itemCountLabel").textContent = items.length + " of " + allItems.length + " items";
+
+        if (!items.length) {
+            document.getElementById("menuList").innerHTML =
+                "<div class='empty'><span class='empty-icon'>🍽</span><h3>No items yet</h3>" +
+                "<p style='font-size:0.82rem;color:var(--muted)'>Use the form to add your first item</p></div>";
+            return;
+        }
+
+        // Group by category
+        var grouped = {};
+        items.forEach(function(item) {
+            if (!grouped[item.category]) grouped[item.category] = [];
+            grouped[item.category].push(item);
+        });
+
+        var specials = getCatSpecials();
+        var html = "";
+
+        Object.entries(grouped).forEach(function([cat, catItems]) {
+            var isCatSpecial = !!specials[cat];
+            html += "<div class='cat-group'>" +
+                "<div class='cat-group-header" + (isCatSpecial ? " special" : "") + "'>" +
+                    "<div style='font-size:0.85rem;font-weight:800'>" +
+                        cat +
+                        (isCatSpecial ? "<span style='font-size:0.68rem;font-weight:700;margin-left:6px;background:rgba(245,166,35,0.18);color:#f5a623;padding:2px 8px;border-radius:10px'>⭐ Category of the Day</span>" : "") +
+                    "</div>" +
+                    "<div style='display:flex;gap:6px;align-items:center'>" +
+                        "<span style='font-size:0.72rem;color:var(--muted)'>" + catItems.length + " item" + (catItems.length !== 1 ? "s" : "") + "</span>" +
+                        "<button class='btn btn-sm' onclick='toggleCatSpecial(\"" + cat + "\")' " +
+                            "style='font-size:0.75rem;padding:4px 10px;" +
+                            "background:" + (isCatSpecial ? "rgba(245,166,35,0.18)" : "var(--light)") + ";" +
+                            "color:" + (isCatSpecial ? "#f5a623" : "var(--muted)") + ";" +
+                            "border:1.5px solid " + (isCatSpecial ? "rgba(245,166,35,0.35)" : "var(--border)") + "'>" +
+                            "⭐ " + (isCatSpecial ? "Unmark" : "Mark") + " Category" +
+                        "</button>" +
+                        "<button class='btn btn-danger btn-sm' onclick='deleteCategory(\"" + cat + "\")' style='font-size:0.75rem;padding:4px 10px'>🗑️ Delete</button>" +
+                    "</div>" +
+                "</div>";
+
+            catItems.forEach(function(item, i) {
+                html += "<div class='menu-item-row' style='animation-delay:" + (i*0.05) + "s;margin-left:8px'>" +
+                    "<div class='item-emoji-box'>" + (item.emoji||"🍽") + "</div>" +
+                    "<div style='flex:1'>" +
+                        "<div class='item-name'>" + item.name +
+                            (item.isSpecial ? "<span style='font-size:0.68rem;font-weight:700;margin-left:6px;background:rgba(245,166,35,0.15);color:#f5a623;padding:2px 8px;border-radius:10px'>⭐ Special</span>" : "") +
+                            (!item.inStock ? "<span style='color:var(--red);font-size:0.72rem;font-weight:700;margin-left:6px'>(Out of Stock)</span>" : "") +
+                        "</div>" +
+                        "<div class='item-meta'><span class='item-price'>₹" + item.price + "</span><span>" + item.category + "</span></div>" +
+                    "</div>" +
+                    "<div class='item-actions'>" +
+                        "<button class='stock-pill " + (item.inStock ? "stock-in" : "stock-out") + "' onclick='toggleStock(" + item.id + ")'>" +
+                            (item.inStock ? "✅ In Stock" : "❌ Out of Stock") +
+                        "</button>" +
+                        "<button class='btn btn-sm special-toggle-btn' data-id='" + item.id + "' onclick='handleSpecialToggle(this)' " +
+                            "style='background:" + (item.isSpecial ? "rgba(245,166,35,0.18)" : "var(--light)") + ";" +
+                            "color:" + (item.isSpecial ? "#f5a623" : "var(--muted)") + ";" +
+                            "border:1.5px solid " + (item.isSpecial ? "rgba(245,166,35,0.35)" : "var(--border)") + ";transition:all 0.2s' " +
+                            "title='" + (item.isSpecial ? "Remove Daily Special" : "Mark as Daily Special") + "'>⭐</button>" +
+                        "<button class='btn btn-ghost btn-sm' onclick='editItem(" + item.id + ")'>✏️</button>" +
+                        "<button class='btn btn-danger btn-sm' onclick='deleteItem(" + item.id + ")'>🗑️</button>" +
+                    "</div>" +
+                "</div>";
+            });
+
+            html += "</div>";
+        });
+
+        document.getElementById("menuList").innerHTML = html;
+    }
+
+    // ── Category special toggle ───────────────────────────────
+    function toggleCatSpecial(cat) {
+        var specials = getCatSpecials();
+        var making   = !specials[cat];
+        if (making) { specials[cat] = true; }
+        else        { delete specials[cat]; }
+        localStorage.setItem("catSpecials_" + activeCanteen, JSON.stringify(specials));
+        showToast(making ? "⭐ " + cat + " marked as Category of the Day!" : cat + " special removed");
+        renderMenu();
+    }
+
+    // ── Delete entire category + its items ────────────────────
+    function deleteCategory(cat) {
+        if (!confirm("Delete \"" + cat + "\" and ALL its items? This cannot be undone.")) return;
+        var items    = getMenuItems(activeCanteen).filter(function(i){ return i.category !== cat; });
+        localStorage.setItem("menu_" + activeCanteen, JSON.stringify(items));
+        var saved    = JSON.parse(localStorage.getItem("customCats_" + activeCanteen) || "[]");
+        saved        = saved.filter(function(c){ return c !== cat; });
+        localStorage.setItem("customCats_" + activeCanteen, JSON.stringify(saved));
+        var specials = getCatSpecials();
+        delete specials[cat];
+        localStorage.setItem("catSpecials_" + activeCanteen, JSON.stringify(specials));
+        activeCatFilter = "All";
+        showToast("Category \"" + cat + "\" deleted");
+        renderMenu();
+    }
+
+    // ── CRUD ──────────────────────────────────────────────────
+    function saveItem() {
+        var name      = document.getElementById("itemName").value.trim();
+        var price     = parseInt(document.getElementById("itemPrice").value);
+        var emoji     = document.getElementById("itemEmoji").value.trim() || "🍽";
+        var category  = document.getElementById("itemCategory").value;
+        var editId    = document.getElementById("editId").value;
+        var cb        = document.getElementById("itemSpecial");
+        var isSpecial = cb ? cb.checked : false;
+
+        if (!name)  { showToast("Please enter a name", false);  return; }
+        if (!price) { showToast("Please enter a price", false); return; }
+        if (category === "__new__") { showToast("Please select a valid category", false); return; }
+
+        var items = getMenuItems(activeCanteen);
+        if (isSpecial) items.forEach(function(i){ i.isSpecial = false; });
+
+        if (editId) {
+            var idx = items.findIndex(function(i){ return i.id == editId; });
+            if (idx !== -1) items[idx] = Object.assign({}, items[idx], {name, price, emoji, category, isSpecial});
+            showToast("Item updated ✓");
+        } else {
+            items.push({id: Date.now(), name, price, emoji, category, isSpecial, inStock: true});
+            showToast(isSpecial ? "Item added as Daily Special ⭐" : "Item added ✓");
+        }
+        localStorage.setItem("menu_" + activeCanteen, JSON.stringify(items));
+        cancelEdit();
+        renderMenu();
+    }
+
+    function editItem(id) {
+        var item = getMenuItems(activeCanteen).find(function(i){ return i.id === id; });
+        if (!item) return;
+        buildCatDropdown(item.category);
+        document.getElementById("itemName").value     = item.name;
+        document.getElementById("itemPrice").value    = item.price;
+        document.getElementById("itemEmoji").value    = item.emoji;
+        document.getElementById("itemCategory").value = item.category;
+        document.getElementById("editId").value       = id;
+        document.getElementById("formTitle").textContent   = "✏️ Edit Item";
+        document.getElementById("saveBtn").textContent     = "Save Changes →";
+        document.getElementById("cancelBtn").style.display = "block";
+        var cb     = document.getElementById("itemSpecial");
+        var slider = document.getElementById("specialSlider");
+        var thumb  = document.getElementById("specialThumb");
+        if (cb)     cb.checked = !!item.isSpecial;
+        if (slider) slider.style.background = item.isSpecial ? "var(--pink)" : "var(--border)";
+        if (thumb)  thumb.style.transform   = item.isSpecial ? "translateX(20px)" : "translateX(0)";
+        document.getElementById("itemName").focus();
+    }
+
+    function cancelEdit() {
+        ["itemName","itemPrice","itemEmoji","editId"].forEach(function(id){ document.getElementById(id).value = ""; });
+        document.getElementById("formTitle").textContent   = "➕ Add New Item";
+        document.getElementById("saveBtn").textContent     = "Add Item →";
+        document.getElementById("cancelBtn").style.display = "none";
+        // Restore category dropdown
+        document.getElementById("newCatWrap").style.display    = "none";
+        document.getElementById("catSelectWrap").style.display = "block";
+        var cb     = document.getElementById("itemSpecial");
+        var slider = document.getElementById("specialSlider");
+        var thumb  = document.getElementById("specialThumb");
+        if (cb)     cb.checked = false;
+        if (slider) slider.style.background = "var(--border)";
+        if (thumb)  thumb.style.transform   = "translateX(0)";
+        buildCatDropdown();
+    }
+
+    function deleteItem(id) {
+        if (!confirm("Remove this item?")) return;
+        var items = getMenuItems(activeCanteen).filter(function(i){ return i.id !== id; });
+        localStorage.setItem("menu_" + activeCanteen, JSON.stringify(items));
+        showToast("Item removed");
+        renderMenu();
+    }
+
+    function toggleStock(id) {
+        var items = getMenuItems(activeCanteen);
+        var idx   = items.findIndex(function(i){ return i.id === id; });
+        if (idx !== -1) {
+            items[idx].inStock = !items[idx].inStock;
+            showToast(items[idx].inStock ? "Marked In Stock ✓" : "Marked Out of Stock");
+            localStorage.setItem("menu_" + activeCanteen, JSON.stringify(items));
+        }
+        renderMenu();
+    }
+
+    function handleSpecialToggle(btn) {
+        var id    = Number(btn.getAttribute("data-id"));
+        var items = getMenuItems(activeCanteen);
+        var idx   = items.findIndex(function(i){ return i.id === id; });
+        if (idx === -1) return;
+        var making = !items[idx].isSpecial;
+        items.forEach(function(i){ i.isSpecial = false; });
+        items[idx].isSpecial = making;
+        localStorage.setItem("menu_" + activeCanteen, JSON.stringify(items));
+        showToast(making ? "⭐ " + items[idx].name + " is now Daily Special!" : "Special removed");
+        renderMenu();
+    }
+
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" && ["itemName","itemPrice","itemEmoji"].includes(document.activeElement && document.activeElement.id)) {
+            saveItem();
+        }
+    });
+
+    renderMenu();
+    showContent();
+</script>
+
+<script>
+function toggleTheme() {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("adminTheme", document.body.classList.contains("dark") ? "dark" : "light");
+}
+</script>
+
+<script>
+    // ── Admin Bell (no-flicker with hash guard) ───────────────
+    var bellOpen      = false;
+    var bellReadIds   = JSON.parse(localStorage.getItem("adminBellReadIds") || "[]");
+    var bellLastCount = 0;
+    var _bellDropHash = "";
+
+    function getBellOrders() {
+        return getMyOrders().slice().reverse().slice(0, 30);
+    }
+
+    function renderBellDrop() {
+        var orders = getBellOrders();
+        var listEl = document.getElementById("bellDropList");
+        if (!listEl) return;
+
+        // Hash guard — skip DOM write if nothing changed
+        var hash = orders.map(function(o){
+            return o.orderID + o.orderStatus + (bellReadIds.indexOf(o.orderID)===-1 ? "u" : "r");
+        }).join(",");
+        if (hash === _bellDropHash) return;
+        _bellDropHash = hash;
+
+        if (!orders.length) {
+            listEl.innerHTML = "<div class='bell-empty'><div class='bell-empty-icon'>🛒</div><div style='font-size:0.82rem'>No orders yet</div></div>";
+            return;
+        }
+        listEl.innerHTML = orders.map(function(o, i) {
+            var isUnread = bellReadIds.indexOf(o.orderID) === -1;
+            var items    = (o.items||[]).map(function(it){ return it.name + " x" + it.quantity; }).join(", ") || "—";
+            var status   = o.orderStatus || "Pending";
+            var sColor   = status==="Ready" ? "var(--green)" : status==="Picked Up" ? "var(--muted)" : "var(--amber)";
+            return "<div class='bell-order-item" + (isUnread ? " unread" : "") + "' style='animation-delay:" + (i*0.04) + "s' onclick='goToOrders()'>" +
+                "<div class='bell-order-icon'>🛒</div>" +
+                "<div class='bell-order-body'>" +
+                    "<div class='bell-order-title'>New Order <span class='bell-token-tag'>Token #" + o.tokenNumber + "</span></div>" +
+                    "<div class='bell-order-sub'>" + items + "</div>" +
+                    "<div style='display:flex;justify-content:space-between;margin-top:3px'>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:" + sColor + "'>" + status + "</span>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:var(--pink)'>&#8377;" + o.total + "</span>" +
+                    "</div>" +
+                    "<div class='bell-order-time'>" + (o.date||"") + "</div>" +
+                "</div>" +
+            "</div>";
+        }).join("");
+    }
+
+    function goToOrders() { window.location.href = "admin-orders.html"; }
+
+    function updateAdminBell() {
+        var orders  = getBellOrders();
+        var unread  = orders.filter(function(o){ return bellReadIds.indexOf(o.orderID)===-1; }).length;
+        var badge   = document.getElementById("adminBellBadge");
+        var btn     = document.getElementById("adminBellBtn");
+        var countEl = document.getElementById("bellUnreadCount");
+        if (badge)   { badge.textContent = unread>9?"9+":String(unread); badge.classList.toggle("show",unread>0); }
+        if (countEl) { countEl.textContent = unread>0 ? "("+unread+" new)" : ""; }
+        if (btn && unread > bellLastCount && unread > 0) {
+            btn.classList.remove("ringing"); void btn.offsetWidth;
+            btn.classList.add("ringing");
+            setTimeout(function(){ btn.classList.remove("ringing"); }, 600);
+        }
+        bellLastCount = unread;
+        if (bellOpen) renderBellDrop();
+    }
+
+    function clearBellOrders() {
+        getBellOrders().forEach(function(o){ if(bellReadIds.indexOf(o.orderID)===-1) bellReadIds.push(o.orderID); });
+        localStorage.setItem("adminBellReadIds", JSON.stringify(bellReadIds));
+        _bellDropHash = "";
+        updateAdminBell(); renderBellDrop();
+    }
+
+    document.addEventListener("click", function(e) {
+        var wrap = document.getElementById("adminBellWrap");
+        var drop = document.getElementById("adminBellDropdown");
+        if (!drop) return;
+        if (wrap && wrap.contains(e.target)) {
+            bellOpen = !bellOpen;
+            drop.classList.toggle("open", bellOpen);
+            if (bellOpen) { renderBellDrop(); clearBellOrders(); }
+        } else { bellOpen=false; drop.classList.remove("open"); }
+    });
+
+    updateAdminBell();
+    setInterval(updateAdminBell, 2000);
+</script>
+</body>
+</html>

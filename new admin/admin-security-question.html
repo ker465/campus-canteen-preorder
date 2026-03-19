@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Question · Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f4f6fb; --white: #fff; --border: #eef0f7;
+            --text: #2d2d3a; --muted: #9b9bb4; --light: #f0f1f8;
+            --pink: #f8719a; --pink2: #f4436c; --pink-light: rgba(248,113,154,0.10);
+            --blue: #5b8dee; --blue2: #3a6fd8; --blue-light: rgba(91,141,238,0.10);
+            --amber: #f5a623; --amber-light: rgba(245,166,35,0.10);
+            --green: #22c55e; --green-light: rgba(34,197,94,0.10);
+            --grad-pink: linear-gradient(135deg,#f8719a,#f4436c);
+            --grad-blue: linear-gradient(135deg,#7eb3f8,#5b8dee);
+            --grad-amber: linear-gradient(135deg,#fbbf24,#f5a623);
+            --grad-green: linear-gradient(135deg,#4ade80,#22c55e);
+            --grad-purple: linear-gradient(135deg,#a78bfa,#7c3aed);
+            --shadow: 0 4px 24px rgba(100,100,140,0.10);
+            --shadow-lg: 0 12px 48px rgba(100,100,140,0.18);
+        }
+
+        body.dark {
+            --bg: #0f0e13; --white: #1a1825; --border: #2a2740;
+            --text: #f0eaf8; --muted: #6e6a8a; --light: #221f32;
+            --pink-light: rgba(248,113,154,0.13);
+            --blue-light: rgba(91,141,238,0.13);
+            --amber-light: rgba(245,166,35,0.10);
+            --green-light: rgba(34,197,94,0.10);
+            --shadow: 0 4px 24px rgba(0,0,0,0.4);
+            --shadow-lg: 0 12px 48px rgba(0,0,0,0.55);
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg); color: var(--text);
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 24px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .blob { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; animation: blobFloat 8s ease-in-out infinite; }
+        .blob-1 { width: 380px; height: 380px; background: rgba(124,58,237,0.08); top: -100px; right: -100px; }
+        .blob-2 { width: 280px; height: 280px; background: rgba(34,197,94,0.07); bottom: -80px; left: -80px; animation-delay: -4s; }
+        body.dark .blob-1 { background: rgba(124,58,237,0.06); }
+        body.dark .blob-2 { background: rgba(34,197,94,0.05); }
+
+        .theme-btn {
+            position: fixed; top: 20px; right: 20px; z-index: 100;
+            width: 44px; height: 44px; border-radius: 13px;
+            border: 1.5px solid var(--border); background: var(--white);
+            cursor: pointer; font-size: 1.15rem;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--shadow); transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .theme-btn:hover { transform: rotate(20deg) scale(1.12); border-color: #7c3aed; }
+
+        .wrapper { position: relative; z-index: 1; width: 100%; max-width: 480px; }
+
+        /* HEADER */
+        .header { text-align: center; margin-bottom: 28px; animation: fadeDown 0.5s ease both; }
+        .header-logo {
+            width: 64px; height: 64px; background: var(--grad-purple);
+            border-radius: 18px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; margin: 0 auto 14px;
+            box-shadow: 0 8px 28px rgba(124,58,237,0.35);
+            animation: popIn 0.6s 0.1s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .header h1 { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 5px; }
+        .header p  { font-size: 0.85rem; color: var(--muted); }
+
+        /* CANTEEN TABS */
+        .canteen-tabs {
+            display: flex; gap: 10px; margin-bottom: 20px;
+            background: var(--light); border-radius: 14px; padding: 5px;
+        }
+        .tab-btn {
+            flex: 1; padding: 10px; border: none; border-radius: 10px;
+            font-family: 'Nunito', sans-serif; font-size: 0.85rem; font-weight: 800;
+            cursor: pointer; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+            background: transparent; color: var(--muted);
+        }
+        .tab-btn.active-mrc    { background: var(--grad-pink); color: #fff; box-shadow: 0 4px 14px rgba(248,113,154,0.35); }
+        .tab-btn.active-khuksi { background: var(--grad-blue); color: #fff; box-shadow: 0 4px 14px rgba(91,141,238,0.35); }
+        .tab-btn:not(.active-mrc):not(.active-khuksi):hover { background: var(--white); color: var(--text); }
+
+        /* CARD */
+        .form-card {
+            background: var(--white); border-radius: 22px;
+            box-shadow: var(--shadow-lg); overflow: hidden;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .card-top {
+            padding: 20px 28px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .canteen-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.8rem; font-weight: 800;
+            padding: 5px 14px; border-radius: 20px;
+        }
+        .badge-mrc    { background: var(--pink-light); color: var(--pink2); }
+        .badge-khuksi { background: var(--blue-light);  color: var(--blue2); }
+
+        .card-body { padding: 24px 28px 28px; }
+
+        .back-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.8rem; font-weight: 700; color: var(--muted);
+            cursor: pointer; background: none; border: none;
+            font-family: 'Nunito', sans-serif; padding: 0;
+            transition: color 0.2s, transform 0.2s; margin-bottom: 18px;
+        }
+        .back-link:hover { color: var(--text); transform: translateX(-3px); }
+        .divider { height: 1px; background: var(--border); margin: 0 0 20px; }
+
+        /* CURRENT QUESTION DISPLAY */
+        .current-box {
+            background: var(--light);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+        }
+        .current-box-label {
+            font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.1em; color: var(--muted); margin-bottom: 6px;
+        }
+        .current-q {
+            font-size: 0.88rem; font-weight: 700; color: var(--text);
+            margin-bottom: 4px; line-height: 1.4;
+        }
+        .current-a {
+            font-size: 0.76rem; color: var(--muted); font-weight: 600;
+        }
+        .not-set-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.72rem; font-weight: 800;
+            padding: 3px 10px; border-radius: 20px;
+            background: rgba(239,83,80,0.10); color: var(--pink2);
+            border: 1px solid rgba(239,83,80,0.2);
+        }
+        .set-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.72rem; font-weight: 800;
+            padding: 3px 10px; border-radius: 20px;
+            background: var(--green-light); color: var(--green);
+            border: 1px solid rgba(34,197,94,0.25);
+        }
+
+        /* INFO BOX */
+        .info-box {
+            background: rgba(124,58,237,0.07);
+            border: 1px solid rgba(124,58,237,0.18);
+            border-radius: 12px; padding: 12px 14px;
+            font-size: 0.78rem; font-weight: 600; color: var(--text);
+            margin-bottom: 20px; display: flex; gap: 10px;
+            align-items: flex-start; line-height: 1.5;
+        }
+
+        /* PRESET QUESTIONS */
+        .preset-label {
+            font-size: 0.72rem; font-weight: 800; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+        }
+        .preset-list {
+            display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;
+        }
+        .preset-btn {
+            background: var(--light); border: 1.5px solid var(--border);
+            border-radius: 10px; padding: 10px 14px;
+            font-size: 0.82rem; font-weight: 600; color: var(--text);
+            cursor: pointer; text-align: left; font-family: 'Nunito', sans-serif;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+        }
+        .preset-btn:hover { border-color: #7c3aed; background: rgba(124,58,237,0.05); color: #7c3aed; }
+        .preset-btn.selected { border-color: #7c3aed; background: rgba(124,58,237,0.08); color: #7c3aed; font-weight: 700; }
+
+        /* FORM */
+        .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+        .form-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; }
+
+        .input-wrap { position: relative; }
+        .input-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 0.9rem; pointer-events: none; }
+
+        input, textarea {
+            width: 100%; background: var(--light); border: 1.5px solid var(--border);
+            color: var(--text); font-family: 'Nunito', sans-serif;
+            font-size: 0.9rem; font-weight: 500;
+            padding: 12px 14px 12px 38px; border-radius: 12px; outline: none;
+            transition: all 0.22s;
+        }
+        textarea { resize: none; padding: 12px 14px; min-height: 80px; line-height: 1.5; }
+        input::placeholder, textarea::placeholder { color: var(--muted); }
+        input:focus, textarea:focus {
+            background: var(--white); transform: translateY(-1px);
+            border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+        }
+        input.input-error { border-color: var(--pink2) !important; box-shadow: 0 0 0 3px rgba(244,67,108,0.12) !important; }
+
+        .field-err { font-size: 0.74rem; font-weight: 700; color: var(--pink2); min-height: 16px; margin-top: 2px; }
+
+        /* OR DIVIDER */
+        .or-row {
+            display: flex; align-items: center; gap: 10px;
+            margin: 4px 0 16px; font-size: 0.72rem; font-weight: 700; color: var(--muted);
+        }
+        .or-row::before, .or-row::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        /* SAVE BUTTON */
+        .save-btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            color: white; font-family: 'Nunito', sans-serif;
+            font-size: 0.95rem; font-weight: 800;
+            cursor: pointer; margin-top: 6px;
+            background: var(--grad-purple);
+            box-shadow: 0 5px 18px rgba(124,58,237,0.35);
+            transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .save-btn:hover  { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(124,58,237,0.45); }
+        .save-btn:active { transform: scale(0.97); }
+
+        .field-success { font-size: 0.74rem; font-weight: 700; color: var(--green); text-align: center; margin-top: 10px; min-height: 18px; }
+
+        /* SUCCESS OVERLAY */
+        .success-overlay {
+            display: none; text-align: center; padding: 20px 0 8px;
+            animation: fadeUp 0.4s ease both;
+        }
+        .success-overlay.show { display: block; }
+        .success-icon {
+            width: 68px; height: 68px; background: var(--grad-green);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; margin: 0 auto 14px;
+            animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+            box-shadow: 0 8px 24px rgba(34,197,94,0.35);
+        }
+        .success-title { font-size: 1.1rem; font-weight: 900; margin-bottom: 5px; }
+        .success-sub   { font-size: 0.82rem; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+
+        .action-row { display: flex; gap: 10px; margin-top: 4px; }
+        .outline-btn {
+            flex: 1; padding: 12px; border: 1.5px solid var(--border);
+            border-radius: 12px; background: var(--white); color: var(--text);
+            font-family: 'Nunito', sans-serif; font-size: 0.88rem; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .outline-btn:hover { border-color: #7c3aed; color: #7c3aed; }
+        .filled-btn {
+            flex: 1; padding: 12px; border: none;
+            border-radius: 12px; background: var(--grad-purple); color: #fff;
+            font-family: 'Nunito', sans-serif; font-size: 0.88rem; font-weight: 800;
+            cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(124,58,237,0.3);
+        }
+        .filled-btn:hover { transform: translateY(-1px); }
+
+        @keyframes fadeUp   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeDown { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes popIn    { from{opacity:0;transform:scale(0.5)} to{opacity:1;transform:scale(1)} }
+        @keyframes blobFloat{ 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-30px) scale(1.05)} }
+        @keyframes shake    { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+    </style>
+</head>
+<body>
+<script>(function(){ if(localStorage.getItem("adminTheme")==="dark") document.body.classList.add("dark"); })()</script>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
+
+<div class="wrapper">
+
+    <div class="header">
+        <div class="header-logo">🛡️</div>
+        <h1>Security Question</h1>
+        <p>Set your identity verification question</p>
+    </div>
+
+    <!-- CANTEEN TABS -->
+    <div class="canteen-tabs">
+        <button class="tab-btn" id="tabMRC"    onclick="switchCanteen('MRC')">🏫 MRC Canteen</button>
+        <button class="tab-btn" id="tabKhuksi" onclick="switchCanteen('Khuksi')">🍜 Khuksi Corner</button>
+    </div>
+
+    <div class="form-card">
+        <div class="card-top">
+            <div class="canteen-badge" id="canteenBadge">🏫 MRC Canteen</div>
+        </div>
+
+        <div class="card-body">
+            <button class="back-link" onclick="window.location.href='admin-login.html'">← Back to Login</button>
+            <div class="divider"></div>
+
+            <!-- FORM SECTION -->
+            <div id="formSection">
+
+                <!-- Current question status -->
+                <div class="current-box" id="currentBox">
+                    <div class="current-box-label">Current Security Question</div>
+                    <div class="current-q" id="currentQ">—</div>
+                    <div class="current-a" id="currentStatus"></div>
+                </div>
+
+                <div class="info-box">
+                    <span>🛡️</span>
+                    <span>This question is used on the <strong>Forgot Password</strong> page to verify your identity before allowing a password reset. Set a question only you know the answer to.</span>
+                </div>
+
+                <!-- Preset questions -->
+                <div class="preset-label">Quick pick a question</div>
+                <div class="preset-list" id="presetList"></div>
+
+                <div class="or-row">or write your own</div>
+
+                <!-- Custom question -->
+                <div class="form-group">
+                    <label class="form-label">Custom Question</label>
+                    <div class="input-wrap">
+                        <span class="input-icon">❓</span>
+                        <input id="sqQuestion" type="text" placeholder="e.g. What is our canteen manager's name?">
+                    </div>
+                    <div class="field-err" id="sqQErr"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Answer</label>
+                    <div class="input-wrap">
+                        <span class="input-icon">💬</span>
+                        <input id="sqAnswer" type="text" placeholder="Your secret answer (not case-sensitive)">
+                    </div>
+                    <div class="field-err" id="sqAErr"></div>
+                </div>
+
+                <button class="save-btn" onclick="saveSecurityQuestion()">
+                    🛡️ Save Security Question
+                </button>
+                <div class="field-success" id="sqSuccess"></div>
+            </div>
+
+            <!-- SUCCESS OVERLAY -->
+            <div class="success-overlay" id="successSection">
+                <div class="success-icon">✅</div>
+                <div class="success-title">Security Question Set!</div>
+                <div class="success-sub" id="successMsg">Your security question has been saved. It will be used to verify your identity on the Forgot Password page.</div>
+                <div class="action-row">
+                    <button class="outline-btn" onclick="resetAndSetAnother()">Set Another</button>
+                    <button class="filled-btn" onclick="window.location.href='admin-login.html'">Back to Login →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── Preset questions ──────────────────────────────────────
+    var PRESETS = [
+        "What is your canteen manager's first name?",
+        "What was the name of your first school?",
+        "What is the name of the street you grew up on?",
+        "What is your mother's maiden name?",
+        "What was the make of your first car?",
+        "What is your favourite food?"
+    ];
+
+    // ── Default fallback answers (used if admin hasn't set one yet) ──
+    var DEFAULT_SECURITY = {
+        MRC:    { question: "What is the secret code set by your canteen manager?", answer: "mrc2024" },
+        Khuksi: { question: "What is the secret code set by your canteen manager?", answer: "khuksi2024" }
+    };
+
+    var activeCanteen  = localStorage.getItem("secQCanteen") || "MRC";
+    var selectedPreset = "";
+
+    // ── Build preset list ─────────────────────────────────────
+    function buildPresets() {
+        var list = document.getElementById("presetList");
+        list.innerHTML = PRESETS.map(function(q, i) {
+            return "<button class='preset-btn' data-q='" + q + "' onclick='selectPreset(this)'>" +
+                "<span>📋</span>" + q +
+            "</button>";
+        }).join("");
+    }
+
+    function selectPreset(btn) {
+        selectedPreset = btn.getAttribute("data-q");
+        document.querySelectorAll(".preset-btn").forEach(function(b){ b.classList.remove("selected"); });
+        btn.classList.add("selected");
+        // Fill the custom question input with the preset
+        document.getElementById("sqQuestion").value = selectedPreset;
+        document.getElementById("sqQuestion").focus();
+        document.getElementById("sqQErr").textContent = "";
+    }
+
+    // ── Load current question ─────────────────────────────────
+    function loadCurrentQ() {
+        var savedQ = localStorage.getItem("adminSecQuestion_" + activeCanteen);
+        var savedA = localStorage.getItem("adminSecAnswer_"   + activeCanteen);
+        var qEl    = document.getElementById("currentQ");
+        var aEl    = document.getElementById("currentStatus");
+
+        if (savedQ && savedA) {
+            qEl.textContent = savedQ;
+            aEl.innerHTML   = "<span class='set-badge'>✅ Answer set</span>";
+        } else {
+            qEl.textContent = DEFAULT_SECURITY[activeCanteen].question;
+            aEl.innerHTML   = "<span class='not-set-badge'>⚠️ Using default — please update</span>";
+        }
+    }
+
+    // ── Save ──────────────────────────────────────────────────
+    function saveSecurityQuestion() {
+        var q   = document.getElementById("sqQuestion").value.trim();
+        var a   = document.getElementById("sqAnswer").value.trim();
+        var qErr = document.getElementById("sqQErr");
+        var aErr = document.getElementById("sqAErr");
+
+        qErr.textContent = "";
+        aErr.textContent = "";
+        document.getElementById("sqQuestion").classList.remove("input-error");
+        document.getElementById("sqAnswer").classList.remove("input-error");
+
+        var valid = true;
+        if (!q) {
+            qErr.textContent = "Please enter or pick a security question.";
+            document.getElementById("sqQuestion").classList.add("input-error");
+            valid = false;
+        }
+        if (!a) {
+            aErr.textContent = "Please enter an answer.";
+            document.getElementById("sqAnswer").classList.add("input-error");
+            valid = false;
+        } else if (a.length < 2) {
+            aErr.textContent = "Answer is too short — use at least 2 characters.";
+            document.getElementById("sqAnswer").classList.add("input-error");
+            valid = false;
+        }
+        if (!valid) return;
+
+        // Save to localStorage
+        localStorage.setItem("adminSecQuestion_" + activeCanteen, q);
+        localStorage.setItem("adminSecAnswer_"   + activeCanteen, a.toLowerCase().trim());
+
+        // Show success
+        var canteenName = activeCanteen === "MRC" ? "MRC Canteen" : "Khuksi Corner";
+        document.getElementById("successMsg").textContent =
+            canteenName + " security question saved successfully. It will be used on the Forgot Password page to verify your identity.";
+        document.getElementById("formSection").style.display = "none";
+        document.getElementById("successSection").classList.add("show");
+    }
+
+    // ── Reset and allow setting another ──────────────────────
+    function resetAndSetAnother() {
+        document.getElementById("sqQuestion").value   = "";
+        document.getElementById("sqAnswer").value     = "";
+        document.getElementById("sqQErr").textContent = "";
+        document.getElementById("sqAErr").textContent = "";
+        document.getElementById("sqSuccess").textContent = "";
+        document.querySelectorAll(".preset-btn").forEach(function(b){ b.classList.remove("selected"); });
+        selectedPreset = "";
+        document.getElementById("formSection").style.display = "block";
+        document.getElementById("successSection").classList.remove("show");
+        loadCurrentQ();
+    }
+
+    // ── Switch canteen ────────────────────────────────────────
+    function switchCanteen(canteen) {
+        activeCanteen = canteen;
+        localStorage.setItem("secQCanteen", canteen);
+
+        document.getElementById("tabMRC").className    = "tab-btn" + (canteen === "MRC"    ? " active-mrc"    : "");
+        document.getElementById("tabKhuksi").className = "tab-btn" + (canteen === "Khuksi" ? " active-khuksi" : "");
+
+        var badge = document.getElementById("canteenBadge");
+        badge.textContent = canteen === "MRC" ? "🏫 MRC Canteen" : "🍜 Khuksi Corner";
+        badge.className   = "canteen-badge " + (canteen === "MRC" ? "badge-mrc" : "badge-khuksi");
+
+        // Reset form
+        document.getElementById("sqQuestion").value   = "";
+        document.getElementById("sqAnswer").value     = "";
+        document.getElementById("sqQErr").textContent = "";
+        document.getElementById("sqAErr").textContent = "";
+        document.getElementById("sqSuccess").textContent = "";
+        document.querySelectorAll(".preset-btn").forEach(function(b){ b.classList.remove("selected"); });
+        selectedPreset = "";
+        document.getElementById("formSection").style.display = "block";
+        document.getElementById("successSection").classList.remove("show");
+
+        loadCurrentQ();
+    }
+
+    // ── Theme ─────────────────────────────────────────────────
+    function toggleTheme() {
+        document.body.classList.toggle("dark");
+        var dark = document.body.classList.contains("dark");
+        localStorage.setItem("adminTheme", dark ? "dark" : "light");
+        document.getElementById("themeBtn").textContent = dark ? "🌙" : "☀️";
+    }
+    if (localStorage.getItem("adminTheme") === "dark") document.getElementById("themeBtn").textContent = "🌙";
+
+    // ── Enter key ─────────────────────────────────────────────
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" && document.activeElement.id !== "sqQuestion") saveSecurityQuestion();
+    });
+
+    // ── Init ──────────────────────────────────────────────────
+    buildPresets();
+    switchCanteen(activeCanteen);
+</script>
+</body>
+</html>

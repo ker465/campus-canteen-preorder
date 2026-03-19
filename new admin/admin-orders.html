@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders · Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        .orders-layout { display:grid; grid-template-columns:1fr 280px; gap:22px; }
+        .orders-list   { display:flex; flex-direction:column; gap:14px; }
+        .notif-area    { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px; margin-top:20px; transition:background var(--transition); }
+        .notif-area h3 { font-size:0.9rem; font-weight:800; margin-bottom:14px; }
+        .notif-log     { display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto; margin-top:10px; }
+        .notif-item    { background:var(--bg); border-radius:10px; padding:10px 12px; font-size:0.8rem; font-weight:500; transition:background var(--transition); }
+        .notif-time    { font-size:0.68rem; color:var(--muted); margin-top:2px; }
+        @media(max-width:900px){ .orders-layout{grid-template-columns:1fr;} }
+    
+        .badge-picked-up  { background: var(--green-bg);  color: var(--green); }
+        .badge-completed  { background: var(--light);      color: var(--muted); }
+        .badge-completed::before { animation: none; }
+
+    
+        .pill-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 5px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            margin-left: 5px;
+            background: rgba(255,255,255,0.15);
+            color: inherit;
+            transition: all 0.2s;
+        }
+        .filter-pill.active .pill-count {
+            background: rgba(0,0,0,0.18);
+        }
+        .pill-count.has-orders {
+            background: var(--pink);
+            color: white;
+            animation: badgePulse 2s infinite;
+        }
+        .filter-pill.active .pill-count.has-orders {
+            background: rgba(0,0,0,0.25);
+            animation: none;
+        }
+
+        </style>
+</head>
+<body>
+<script>(function(){if(localStorage.getItem("adminTheme")==="dark")document.body.classList.add("dark");})()</script>
+<script src="admin.js"></script>
+<script>if(!localStorage.getItem("adminCanteen")) window.location.href="admin-login.html";</script>
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-circle" id="sidebarIcon">🍽</div>
+        <div>
+            <div class="logo-name" id="sidebarName">Canteen</div>
+            <div class="logo-sub">Admin Panel</div>
+        </div>
+    </div>
+    <div class="nav-section">Main</div>
+    <a class="nav-link" href="admin-dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a class="nav-link active" href="admin-orders.html"><span class="nav-icon">🧾</span> Orders <span class="nav-badge" id="pendingBadge" style="display:none"></span></a>
+    <a class="nav-link" href="admin-menu.html"><span class="nav-icon">🍽</span> Menu</a>
+    <a class="nav-link" href="admin-schedule.html"><span class="nav-icon">🕐</span> Schedule</a>
+    <div class="nav-section">Reports</div>
+    <a class="nav-link" href="admin-customers.html"><span class="nav-icon">👥</span> Customers</a>
+    <a class="nav-link" href="admin-reviews.html"><span class="nav-icon">⭐</span> Reviews</a>
+    <div class="sidebar-promo">
+        <span class="promo-icon">🍳</span>
+        <div class="promo-title">Manage your menu easily</div>
+        <div class="promo-sub">Add or update items anytime</div>
+        <button class="promo-btn" onclick="window.location.href='admin-menu.html'">+ Add Item</button>
+    </div>
+    <div class="sidebar-footer">
+        <button class="logout-nav" onclick="adminLogout()"><span>🚪</span> Log out</button>
+    </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="main">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Orders</h1>
+            <p>Here is your real-time order list</p>
+        </div>
+        <div class="topbar-right">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode">
+                <span class="icon-sun">☀️</span>
+                <span class="icon-moon">🌙</span>
+            </button>
+            <span id="canteenBadge" style="font-size:0.75rem;font-weight:700;padding:5px 14px;border-radius:20px;background:var(--pink-light);color:var(--pink2)"></span>
+            <div class="topbar-search">
+                <span>🔍</span>
+                <input type="text" id="searchInput" placeholder="Search orders..." oninput="render()">
+            </div>
+<div class="admin-bell-wrap" id="adminBellWrap">
+                <button class="admin-bell-btn" id="adminBellBtn" title="New Orders">
+                    🔔
+                    <div class="admin-bell-badge" id="adminBellBadge">0</div>
+                </button>
+                <div class="admin-bell-dropdown" id="adminBellDropdown">
+                    <div class="bell-drop-header">
+                        <div class="bell-drop-title">🛒 Incoming Orders <span id="bellUnreadCount" style="font-size:0.72rem;color:var(--muted);font-weight:600"></span></div>
+                        <button class="bell-clear-btn" onclick="clearBellOrders()">Mark all read</button>
+                    </div>
+                    <div class="bell-drop-list" id="bellDropList"></div>
+                    <div class="bell-drop-footer"><a href="admin-orders.html">View all orders →</a></div>
+                </div>
+            </div>
+            <div class="admin-pill">
+                <div class="admin-avatar">A</div>
+                <div>
+                    <div class="admin-name" id="adminNameLabel">Admin</div>
+                    <div class="admin-role">Manager</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-content">
+
+        <!-- ══ SKELETON ══ -->
+        <div id="skeleton" style="display:block">
+            <div style="display:flex;gap:8px;margin-bottom:20px">
+                <div class="sk" style="height:32px;width:60px;border-radius:20px"></div>
+                <div class="sk" style="height:32px;width:110px;border-radius:20px;animation-delay:.1s"></div>
+                <div class="sk" style="height:32px;width:90px;border-radius:20px;animation-delay:.2s"></div>
+                <div class="sk" style="height:32px;width:110px;border-radius:20px;animation-delay:.3s"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 280px;gap:22px">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div class="sk-order-card"><div class="sk-order-top"><div class="sk sk-token"></div><div class="sk sk-badge"></div></div><div class="sk-order-body"><div class="sk-meta-grid"><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div></div><div class="sk-btn-row"><div class="sk sk-btn"></div><div class="sk sk-btn"></div><div class="sk sk-btn"></div></div></div></div>
+                    <div class="sk-order-card" style="animation-delay:.1s"><div class="sk-order-top"><div class="sk sk-token"></div><div class="sk sk-badge"></div></div><div class="sk-order-body"><div class="sk-meta-grid"><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div></div><div class="sk-btn-row"><div class="sk sk-btn"></div><div class="sk sk-btn"></div><div class="sk sk-btn"></div></div></div></div>
+                    <div class="sk-order-card" style="animation-delay:.2s"><div class="sk-order-top"><div class="sk sk-token"></div><div class="sk sk-badge"></div></div><div class="sk-order-body"><div class="sk-meta-grid"><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div><div class="sk-meta-item"><div class="sk sk-meta-lbl"></div><div class="sk sk-meta-val"></div></div></div><div class="sk-btn-row"><div class="sk sk-btn"></div><div class="sk sk-btn"></div><div class="sk sk-btn"></div></div></div></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div class="sk-queue"><div class="sk-queue-top"><div class="sk-queue-label"></div><div class="sk-queue-num"></div></div><div class="sk-queue-cols"><div class="sk-queue-col"><div class="sk sk-col-title"></div><div class="sk-tokens-row"><div class="sk sk-tok"></div><div class="sk sk-tok"></div></div></div><div class="sk-queue-col"><div class="sk sk-col-title"></div><div class="sk-tokens-row"><div class="sk sk-tok"></div></div></div></div></div>
+                    <div class="sk-table" style="padding:16px;display:flex;flex-direction:column;gap:10px"><div class="sk" style="height:14px;width:130px;margin-bottom:6px"></div><div class="sk" style="height:60px;border-radius:12px"></div><div class="sk" style="height:34px;border-radius:10px;margin-top:4px"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ REAL CONTENT ══ -->
+        <div id="realContent" style="display:none">
+
+            <!-- Filter bar -->
+            <div class="filter-bar">
+                <button class="filter-pill active" id="pill-All" onclick="setFilter('All',this)">All <span class="pill-count" id="cnt-All"></span></button>
+                <button class="filter-pill" id="pill-Pending" onclick="setFilter('Pending',this)">🕐 Pending <span class="pill-count" id="cnt-Pending"></span></button>
+                <button class="filter-pill" id="pill-Preparing" onclick="setFilter('Preparing',this)">🍳 Preparing <span class="pill-count" id="cnt-Preparing"></span></button>
+                <button class="filter-pill" id="pill-Ready" onclick="setFilter('Ready',this)">✅ Ready <span class="pill-count" id="cnt-Ready"></span></button>
+                <button class="filter-pill" id="pill-PickedUp" onclick="setFilter('Picked Up',this)">🛍 Picked Up <span class="pill-count" id="cnt-PickedUp"></span></button>
+            </div>
+
+            <!-- Main layout -->
+            <div class="orders-layout">
+
+                <!-- LEFT: order cards -->
+                <div class="orders-list" id="ordersGrid"></div>
+
+                <!-- RIGHT: queue + notifications -->
+                <div>
+                    <div class="section-hdr"><h2>Live Queue</h2></div>
+                    <div class="queue-board">
+                        <div class="queue-now">
+                            <div class="queue-now-label">Now Serving</div>
+                            <div class="queue-now-num" id="nowServingNum">–</div>
+                        </div>
+                        <div class="queue-cols">
+                            <div class="queue-col">
+                                <div class="queue-col-title preparing">Preparing</div>
+                                <div class="queue-tokens" id="preparingTokens"></div>
+                            </div>
+                            <div class="queue-col">
+                                <div class="queue-col-title ready">Ready</div>
+                                <div class="queue-tokens" id="readyTokens"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Auto Notification Log -->
+                    <div class="notif-area">
+                        <h3>📣 Auto Notifications</h3>
+                        <p style="font-size:0.76rem;color:var(--muted);margin-bottom:10px">
+                            Sent automatically when an order is marked Ready
+                        </p>
+                        <div class="notif-log" id="notifLog"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="adminToast">
+    <span id="toastIcon">✅</span>
+    <span id="toastMsg"></span>
+</div>
+
+<script>
+
+    const adminCanteen = localStorage.getItem("adminCanteen") || "";
+    let currentFilter  = "All";
+
+    // ── Branding ──────────────────────────────
+    (function() {
+        const labels = { MRC: { name: "MRC Canteen", icon: "🏫" }, Khuksi: { name: "Khuksi Corner", icon: "🍜" } };
+        const L = labels[adminCanteen] || { name: adminCanteen, icon: "🍽" };
+        const badge = document.getElementById("canteenBadge");
+        if (badge) badge.textContent = L.icon + " " + L.name;
+        const sName = document.getElementById("sidebarName");
+        if (sName) sName.textContent = L.name;
+        const sIcon = document.getElementById("sidebarIcon");
+        if (sIcon) sIcon.textContent = L.icon;
+        const aName = document.getElementById("adminNameLabel");
+        if (aName) aName.textContent = adminCanteen + " Admin";
+    })();
+
+    // ── Filter ────────────────────────────────
+    function setFilter(f, btn) {
+        currentFilter = f;
+        document.querySelectorAll(".filter-pill").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        render();
+    }
+
+    // ── Main render ───────────────────────────
+    // ── Action buttons — uses data-attributes to avoid all quote nesting ──
+    function getActionBtns(status, orderID) {
+        var st  = status || "Pending";
+        var lock = '<button class="btn btn-sm" disabled style="opacity:0.3;cursor:not-allowed;background:var(--light)">';
+
+        // ── Completed ──────────────────────────────────────────
+        if (st === "Picked Up" || st === "Completed") {
+            return '<span style="font-size:0.78rem;font-weight:700;color:var(--green);' +
+                   'padding:6px 14px;background:var(--green-bg);border-radius:10px;' +
+                   'display:inline-flex;align-items:center;gap:6px">✅ Order Complete</span>';
+        }
+
+        // ── Ready → only Picked Up is active ──────────────────
+        if (st === "Ready") {
+            return [
+                lock + "🍳 Preparing</button>",
+                lock + "✅ Ready</button>",
+                '<button class="btn btn-pink btn-sm" data-id="' + orderID + '" data-status="Picked Up" onclick="handleBtn(this)">🛍 Picked Up</button>'
+            ].join(" ");
+        }
+
+        // ── Preparing → only Ready is active ──────────────────
+        if (st === "Preparing") {
+            return [
+                lock + "🍳 Preparing</button>",
+                '<button class="btn btn-green btn-sm" data-id="' + orderID + '" data-status="Ready" onclick="handleBtn(this)">✅ Ready</button>',
+                lock + "🛍 Picked Up</button>"
+            ].join(" ");
+        }
+
+        // ── Pending → only Preparing is active ────────────────
+        return [
+            '<button class="btn btn-ghost btn-sm" data-id="' + orderID + '" data-status="Preparing" onclick="handleBtn(this)">🍳 Preparing</button>',
+            lock + "✅ Ready</button>",
+            lock + "🛍 Picked Up</button>"
+        ].join(" ");
+    }
+
+    function handleBtn(btn) {
+        setStatus(btn.getAttribute("data-id"), btn.getAttribute("data-status"));
+    }
+
+    var _lastHash_admin_orders = "";
+
+    // ── Order Sorting (Priority: slot time → token number) ───
+    function parseTimeToMinutes(timeStr) {
+        if (!timeStr) return Infinity;
+        let [time, modifier] = timeStr.split(" ");
+        if (!time || !modifier) return Infinity;
+        let [hours, minutes] = time.split(":").map(Number);
+        if (modifier === "PM" && hours !== 12) hours += 12;
+        if (modifier === "AM" && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+    }
+
+    function sortOrdersByPriority(orders) {
+        return [...orders].sort((a, b) => {
+            // 1️⃣ Time priority — earlier slot first
+            const timeA = parseTimeToMinutes(a.slot);
+            const timeB = parseTimeToMinutes(b.slot);
+            if (timeA !== timeB) return timeA - timeB;
+            // 2️⃣ Token priority — lower token first
+            return (a.tokenNumber || 0) - (b.tokenNumber || 0);
+        });
+    }
+
+    // Alias for backwards compat
+    const sortOrders = sortOrdersByPriority;
+
+
+    function updateFilterCounts() {
+        var all      = getMyOrders();
+        var today    = new Date().toDateString();
+        var todayAll = all.filter(o => new Date(o.date).toDateString() === today);
+
+        var counts = {
+            "All":       todayAll.length,
+            "Pending":   todayAll.filter(o => o.orderStatus === "Pending").length,
+            "Preparing": todayAll.filter(o => o.orderStatus === "Preparing").length,
+            "Ready":     todayAll.filter(o => o.orderStatus === "Ready").length,
+            "PickedUp":  todayAll.filter(o => ["Picked Up","Completed"].includes(o.orderStatus)).length,
+        };
+
+        Object.entries(counts).forEach(function([key, count]) {
+            var el = document.getElementById("cnt-" + key);
+            if (!el) return;
+            el.textContent = count || "";
+            el.classList.toggle("has-orders", count > 0 && key !== "All" && key !== "PickedUp");
+        });
+    }
+
+    function render() {
+        try {
+            let orders = sortOrdersByPriority(getMyOrders());
+            // Hash check — skip re-render if nothing changed
+            var _currHash = orders.map(function(o){ return o.orderID+o.orderStatus; }).join(",") + currentFilter + (document.getElementById("searchInput")?.value||"");
+            if (typeof _ordersHash !== "undefined" && _currHash === _ordersHash) return;
+            window._ordersHash = _currHash;
+            var _h = orders.map(function(o){ return o.orderID+o.orderStatus; }).join();
+            if (_h === _lastHash_admin_orders && document.getElementById("ordersGrid").innerHTML !== "") { _lastHash_admin_orders=_h; }
+            _lastHash_admin_orders = _h;
+
+            // Update filter pill counts
+            updateFilterCounts();
+
+            // Pending badge in sidebar
+            const pending = orders.filter(o => ["Pending", "Preparing"].includes(o.orderStatus));
+            const pb = document.getElementById("pendingBadge");
+            if (pb) {
+                if (pending.length) { pb.textContent = pending.length; pb.style.display = ""; }
+                else pb.style.display = "none";
+            }
+
+            // Search filter
+            const q = (document.getElementById("searchInput")?.value || "").toLowerCase().trim();
+            if (q) {
+                orders = orders.filter(o =>
+                    String(o.tokenNumber).includes(q) ||
+                    (o.orderID || "").toLowerCase().includes(q) ||
+                    (o.items || []).some(i => i.name.toLowerCase().includes(q))
+                );
+            }
+
+            // Status filter
+            if (currentFilter !== "All") {
+                orders = orders.filter(o => o.orderStatus === currentFilter || (currentFilter === 'Picked Up'));
+            }
+
+            const grid = document.getElementById("ordersGrid");
+            if (!grid) return;
+
+            if (!orders.length) {
+                grid.innerHTML = `
+                    <div class="empty">
+                        <span class="empty-icon">🧾</span>
+                        <h3>No orders found</h3>
+                        <p style="font-size:0.82rem;color:var(--muted);margin-top:4px">
+                            ${currentFilter !== "All" ? "Try switching to a different filter." : "Waiting for students to place orders."}
+                        </p>
+                    </div>`;
+            } else {
+                // Build priority badge based on sorted position
+                const priorityLabel = (orders, idx) => {
+                    const active = orders.filter((x, j) => j <= idx && !["Picked Up","Completed"].includes(x.orderStatus));
+                    const pos = active.length - 1;
+                    if (pos === 0) return "<span style='font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:8px;background:rgba(239,83,80,0.15);color:#ef5350;letter-spacing:0.06em'>🔥 NEXT</span>";
+                    if (pos < 4)  return "<span style='font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:8px;background:rgba(245,166,35,0.12);color:var(--amber);letter-spacing:0.06em'>⏳ SOON</span>";
+                    return "<span style='font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:8px;background:rgba(138,125,107,0.12);color:var(--muted);letter-spacing:0.06em'>🕒 LATER</span>";
+                };
+
+                grid.innerHTML = orders.map((o, i) => {
+                    const status    = o.orderStatus || "Pending";
+                    const statusCls = {"Picked Up":"picked-up","Pending":"pending","Preparing":"preparing","Ready":"ready","Completed":"picked-up"}[status] || "pending";
+                    const items     = (o.items || []).map(it => `${it.name} ×${it.quantity}`).join(", ") || "—";
+                    const isDone    = ["Picked Up","Completed"].includes(status);
+                    const badge     = !isDone ? priorityLabel(orders, i) : "";
+                    return `
+                    <div class="order-card" style="animation-delay:${i * 0.04}s${i === 0 && !isDone ? ';border-color:rgba(239,83,80,0.35)' : ''}">
+                        <div class="order-card-top">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <div class="token-pill">Token #${o.tokenNumber || "—"}</div>
+                                ${badge}
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <span class="badge badge-${statusCls}">${status}</span>
+                            </div>
+                        </div>
+                        <div class="order-card-body">
+                            <div class="order-meta-grid">
+                                <div class="meta-item">
+                                    <div class="meta-label">Customer</div>
+                                    <div class="meta-value">${o.customerName || "Student"}</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">Items</div>
+                                    <div class="meta-value" style="font-size:0.8rem">${items}</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">Slot</div>
+                                    <div class="meta-value">${o.slot || "—"}</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">Payment</div>
+                                    <div class="meta-value">${o.paymentMethod || "—"}</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">Total</div>
+                                    <div class="meta-value" style="color:var(--pink);font-weight:800">₹${o.total || 0}</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">Time</div>
+                                    <div class="meta-value" style="color:var(--muted);font-size:0.78rem">${o.date || "—"}</div>
+                                </div>
+                            </div>
+                            <div class="action-btns">
+                                ${getActionBtns(o.orderStatus, o.orderID)}
+                            </div>
+                        </div>
+                    </div>`;
+                }).join("");
+            }
+
+            // ── Live Queue (priority sorted) ──────────────────
+            const allOrds   = sortOrdersByPriority(getMyOrders());
+            const active    = allOrds.filter(o => !["Picked Up","Completed"].includes(o.orderStatus));
+            const nowFirst  = active[0]; // 🔥 highest priority active order
+            const prep      = active.filter(o => ["Pending","Preparing"].includes(o.orderStatus));
+            const rdy       = active.filter(o => o.orderStatus === "Ready");
+
+            const nowEl = document.getElementById("nowServingNum");
+            if (nowEl) {
+                if (nowFirst) {
+                    nowEl.innerHTML = `<div style='font-size:2rem;font-weight:900;line-height:1'>${nowFirst.tokenNumber}</div>` +
+                        `<div style='font-size:0.65rem;color:rgba(255,255,255,0.7);margin-top:3px'>${nowFirst.slot || ""}</div>`;
+                } else {
+                    nowEl.textContent = "–";
+                }
+            }
+
+            const prepEl = document.getElementById("preparingTokens");
+            const rdyEl  = document.getElementById("readyTokens");
+            if (prepEl) prepEl.innerHTML = prep.length
+                ? prep.map(o => `<div class="queue-token preparing" title="${o.slot || ''}">${o.tokenNumber}</div>`).join("")
+                : '<span style="font-size:0.78rem;color:var(--muted)">None</span>';
+            if (rdyEl) rdyEl.innerHTML = rdy.length
+                ? rdy.map(o => `<div class="queue-token ready" title="${o.slot || ''}">${o.tokenNumber}</div>`).join("")
+                : '<span style="font-size:0.78rem;color:var(--muted)">None</span>';
+
+            // Notif log
+            const notifs  = JSON.parse(localStorage.getItem(`notifications_${adminCanteen}`)) || [];
+            const logEl   = document.getElementById("notifLog");
+            if (logEl) {
+                logEl.innerHTML = notifs.slice(0, 5).map(n =>
+                    `<div class="notif-item">${n.msg}<div class="notif-time">${n.time || ""}</div></div>`
+                ).join("") || '<span style="font-size:0.78rem;color:var(--muted)">No notifications yet</span>';
+            }
+
+        } catch (err) {
+            console.error("render error:", err);
+        }
+    }
+
+    // ── Actions ───────────────────────────────
+    function setStatus(orderID, status) {
+        // Prevent any change if already Picked Up
+        const all = JSON.parse(localStorage.getItem("orders")) || [];
+        const order = all.find(o => o.orderID === orderID);
+        if (order && order.orderStatus === "Picked Up") {
+            showToast("Order already picked up — cannot change", false);
+            return;
+        }
+        // Can only mark Completed if currently Ready
+        if (status === "Picked Up" && order && order.orderStatus !== "Ready") {
+            showToast("Mark as Ready first", false);
+            return;
+        }
+        updateOrderStatus(orderID, status);
+
+        // ── Auto-notify student when order is Ready ──
+        if (status === "Ready") {
+            const allOrders = JSON.parse(localStorage.getItem("orders")) || [];
+            const order = allOrders.find(o => o.orderID === orderID);
+            if (order) {
+                const msg = "🍽 Token #" + order.tokenNumber + " is ready for pickup! Please collect your order.";
+                sendNotification(msg);
+                showToast("Order marked Ready — student notified 📣");
+            } else {
+                showToast("Marked as Ready ✓");
+            }
+        } else {
+            showToast("Marked as " + status + " ✓");
+        }
+
+        render();
+    }
+
+    // ── Skeleton → content ────────────────────
+    function showContent() {
+        const sk = document.getElementById("skeleton");
+        const ct = document.getElementById("realContent");
+        if (!sk || !ct) return;
+        // Fade skeleton out
+        sk.style.transition = "opacity 0.3s ease";
+        sk.style.opacity = "0";
+        setTimeout(() => {
+            sk.style.display = "none";
+            ct.style.display = "block";
+            ct.style.animation = "fadeUp 0.35s ease both";
+        }, 300);
+    }
+
+    // ── Init ──────────────────────────────────
+    // Small delay so DOM is ready and fonts loaded
+    setTimeout(() => {
+        render();
+        showContent();
+    }, 150);
+    setInterval(render, 2000);
+
+    // ── New Order Detection ────────────────────────────────────
+    var lastKnownOrderIds = new Set(
+        getMyOrders().map(function(o){ return o.orderID; })
+    );
+
+    function playAdminSound() {
+        try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            // Urgent double-beep for new order
+            var tones = [
+                { freq: 880,  start: 0,    dur: 0.12 },
+                { freq: 880,  start: 0.16, dur: 0.12 },
+                { freq: 1100, start: 0.34, dur: 0.2  }
+            ];
+            tones.forEach(function(t) {
+                var osc  = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "square";
+                osc.frequency.setValueAtTime(t.freq, ctx.currentTime + t.start);
+                gain.gain.setValueAtTime(0, ctx.currentTime + t.start);
+                gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + t.start + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t.start + t.dur);
+                osc.start(ctx.currentTime + t.start);
+                osc.stop(ctx.currentTime + t.start + t.dur + 0.05);
+            });
+        } catch(e) {}
+    }
+
+    function dismissNewOrderPopup() {
+        var el = document.getElementById("newOrderPopup");
+        if (el) el.remove();
+    }
+
+    function showNewOrderPopup(order) {
+        // Create popup if not exists
+        var existing = document.getElementById("newOrderPopup");
+        if (existing) existing.remove();
+
+        var items = (order.items||[]).map(function(i){ return i.name + " ×" + i.quantity; }).join(", ");
+        var popup = document.createElement("div");
+        popup.id = "newOrderPopup";
+        popup.style.cssText = [
+            "position:fixed", "bottom:28px", "right:28px", "z-index:9999",
+            "background:var(--white)", "border:1.5px solid var(--green)",
+            "border-radius:18px", "padding:18px 22px", "max-width:320px",
+            "box-shadow:0 12px 48px rgba(0,0,0,0.3)",
+            "animation:slideInRight 0.4s cubic-bezier(0.34,1.56,0.64,1) both",
+            "display:flex", "gap:14px", "align-items:flex-start"
+        ].join(";");
+
+        popup.innerHTML =
+            "<div style='font-size:1.8rem;animation:bellRing 0.5s ease'>🛒</div>" +
+            "<div style='flex:1'>" +
+                "<div style='font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);margin-bottom:4px'>New Order!</div>" +
+                "<div style='font-size:0.95rem;font-weight:800;margin-bottom:3px'>Token #" + order.tokenNumber + "</div>" +
+                "<div style='font-size:0.78rem;color:var(--muted);margin-bottom:8px'>" + items + "</div>" +
+                "<div style='display:flex;align-items:center;justify-content:space-between'>" +
+                    "<span style='font-size:0.88rem;font-weight:700;color:var(--pink)'>₹" + order.total + "</span>" +
+                    "<button onclick='dismissNewOrderPopup()' style='background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:2px 6px'>✕</button>" +
+                "</div>" +
+            "</div>";
+
+        document.body.appendChild(popup);
+
+        // Add slide-in animation if not already in CSS
+        if (!document.getElementById("popupAnim")) {
+            var style = document.createElement("style");
+            style.id = "popupAnim";
+            style.textContent = "@keyframes slideInRight{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}";
+            document.head.appendChild(style);
+        }
+
+        // Auto-dismiss after 8 seconds
+        setTimeout(function() {
+            var el = document.getElementById("newOrderPopup");
+            if (el) {
+                el.style.transition = "opacity 0.4s, transform 0.4s";
+                el.style.opacity = "0";
+                el.style.transform = "translateX(60px)";
+                setTimeout(function(){ if(el.parentNode) el.remove(); }, 400);
+            }
+        }, 8000);
+    }
+
+    function checkNewOrders() {
+        var current = getMyOrders();
+        var newOnes = current.filter(function(o){
+            return !lastKnownOrderIds.has(o.orderID);
+        });
+        newOnes.forEach(function(order) {
+            lastKnownOrderIds.add(order.orderID);
+            playAdminSound();
+            showNewOrderPopup(order);
+        });
+        // Keep set in sync
+        current.forEach(function(o){ lastKnownOrderIds.add(o.orderID); });
+    }
+
+    // Check for new orders every 2s (same cadence as render)
+    setInterval(checkNewOrders, 2000);
+
+
+</script>
+
+<script>
+function toggleTheme() {
+    document.body.classList.toggle("dark");
+    const isDark = document.body.classList.contains("dark");
+    localStorage.setItem("adminTheme", isDark ? "dark" : "light");
+}
+</script>
+
+<script>
+
+    // ══ ADMIN ORDER BELL ════════════════════════════════════════
+    var bellOpen      = false;
+    var bellReadIds   = JSON.parse(localStorage.getItem("adminBellReadIds") || "[]");
+    var bellLastCount = 0;
+
+    function getBellOrders() {
+        return getMyOrders().slice().reverse().slice(0, 30);
+    }
+
+
+    let _bellDropHash = "";
+    function renderBellDrop() {
+        var orders  = getBellOrders();
+        var listEl  = document.getElementById("bellDropList");
+        if (!listEl) return;
+
+        // Hash guard — skip if nothing changed
+        var hash = orders.map(function(o){ return o.orderID + o.orderStatus + (bellReadIds.indexOf(o.orderID)===-1?"u":"r"); }).join(",");
+        if (hash === _bellDropHash) return;
+        _bellDropHash = hash;
+
+        if (!orders.length) {
+            listEl.innerHTML = "<div class='bell-empty'><div class='bell-empty-icon'>🛒</div><div style='font-size:0.82rem'>No orders yet</div></div>";
+            return;
+        }
+        listEl.innerHTML = orders.map(function(o, i) {
+            var isUnread = bellReadIds.indexOf(o.orderID) === -1;
+            var items    = (o.items||[]).map(function(it){ return it.name + " x" + it.quantity; }).join(", ") || "—";
+            var status   = o.orderStatus || "Pending";
+            var sColor   = status==="Ready" ? "var(--green)" : status==="Picked Up" ? "var(--muted)" : "var(--amber)";
+            return "<div class='bell-order-item" + (isUnread ? " unread" : "") + "' style='animation-delay:" + (i*0.04) + "s' onclick='goToOrders()'>" +
+                "<div class='bell-order-icon'>🛒</div>" +
+                "<div class='bell-order-body'>" +
+                    "<div class='bell-order-title'>New Order <span class='bell-token-tag'>Token #" + o.tokenNumber + "</span></div>" +
+                    "<div class='bell-order-sub'>" + items + "</div>" +
+                    "<div style='display:flex;justify-content:space-between;margin-top:3px'>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:" + sColor + "'>" + status + "</span>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:var(--pink)'>&#8377;" + o.total + "</span>" +
+                    "</div>" +
+                    "<div class='bell-order-time'>" + (o.date||"") + "</div>" +
+                "</div>" +
+            "</div>";
+        }).join("");
+    }
+
+    function goToOrders() { window.location.href = 'admin-orders.html'; }
+
+    function updateAdminBell() {
+        var orders  = getBellOrders();
+        var unread  = orders.filter(function(o){ return bellReadIds.indexOf(o.orderID)===-1; }).length;
+        var badge   = document.getElementById("adminBellBadge");
+        var btn     = document.getElementById("adminBellBtn");
+        var countEl = document.getElementById("bellUnreadCount");
+        if (badge)   { badge.textContent = unread>9?"9+":String(unread); badge.classList.toggle("show",unread>0); }
+        if (countEl) { countEl.textContent = unread>0 ? "("+unread+" new)" : ""; }
+        if (btn && unread > bellLastCount && unread > 0) {
+            btn.classList.remove("ringing"); void btn.offsetWidth;
+            btn.classList.add("ringing");
+            setTimeout(function(){ btn.classList.remove("ringing"); }, 600);
+        }
+        bellLastCount = unread;
+        if (bellOpen) renderBellDrop();
+    }
+
+    function clearBellOrders() {
+        getBellOrders().forEach(function(o){ if(bellReadIds.indexOf(o.orderID)===-1) bellReadIds.push(o.orderID); });
+        localStorage.setItem("adminBellReadIds", JSON.stringify(bellReadIds));
+        _bellDropHash = ""; // force re-render
+        updateAdminBell(); renderBellDrop();
+    }
+
+    document.addEventListener("click", function(e) {
+        var wrap = document.getElementById("adminBellWrap");
+        var drop = document.getElementById("adminBellDropdown");
+        if (!drop) return;
+        if (wrap && wrap.contains(e.target)) {
+            bellOpen = !bellOpen;
+            drop.classList.toggle("open", bellOpen);
+            if (bellOpen) { renderBellDrop(); clearBellOrders(); }
+        } else { bellOpen=false; drop.classList.remove("open"); }
+    });
+
+    updateAdminBell();
+    setInterval(updateAdminBell, 2000);
+
+</script>
+</body>
+</html>

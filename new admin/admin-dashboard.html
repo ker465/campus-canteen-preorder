@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard · Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        .dash-grid { display: grid; grid-template-columns: 1fr 300px; gap: 22px; }
+        .summary-ring { display: flex; align-items: center; gap: 24px; padding: 22px; }
+        .ring-wrap { position: relative; width: 110px; height: 110px; flex-shrink: 0; }
+        .ring-wrap svg { transform: rotate(-90deg); }
+        .ring-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .ring-pct { font-size: 1.3rem; font-weight: 800; color: var(--text); }
+        .ring-lbl { font-size: 0.62rem; font-weight: 700; color: var(--muted); }
+        .ring-info h3 { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+        .ring-big { font-size: 1.6rem; font-weight: 800; color: var(--text); letter-spacing: -0.5px; margin-bottom: 2px; }
+        .ring-sub { font-size: 0.78rem; color: var(--muted); }
+        .ring-counts { display: flex; gap: 20px; padding: 14px 22px; border-top: 1px solid var(--border); }
+        .ring-count { display: flex; flex-direction: column; gap: 2px; }
+        .ring-count-num { font-size: 1.2rem; font-weight: 800; }
+        .ring-count-lbl { font-size: 0.7rem; color: var(--muted); font-weight: 600; }
+        .trending-item { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+        .trending-item:last-child { border-bottom: none; }
+        .trending-num { width: 22px; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+        .trending-emoji { font-size: 1.4rem; width: 36px; height: 36px; background: var(--pink-light); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .trending-name { font-size: 0.85rem; font-weight: 700; flex: 1; }
+        .trending-orders { font-size: 0.75rem; color: var(--muted); }
+        .trending-price { font-size: 0.88rem; font-weight: 700; color: var(--pink); }
+
+        /* SESSION CARD */
+        .session-card {
+            background: var(--white); border-radius: var(--radius);
+            box-shadow: var(--shadow); overflow: hidden;
+            margin-bottom: 26px;
+            transition: background var(--transition), box-shadow var(--transition);
+        }
+        .session-card-inner {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+            gap: 0;
+        }
+        .session-slot {
+            padding: 18px 22px;
+            border-right: 1px solid var(--border);
+            transition: border-color var(--transition);
+        }
+        .session-slot:last-child { border-right: none; }
+        .session-slot-label { font-size:0.62rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+        .session-slot-val   { font-size:1.1rem; font-weight:800; }
+        .session-slot-sub   { font-size:0.75rem; color:var(--muted); margin-top:3px; }
+        .session-open   { color: var(--green); }
+        .session-closed { color: var(--red); }
+        .session-header {
+            padding: 13px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.88rem; font-weight: 800;
+        }
+        /* CLOSED WARNING BANNER */
+        .closed-warning {
+            background: rgba(244,67,108,0.08);
+            border: 1px solid rgba(244,67,108,0.2);
+            border-radius: 12px; padding: 14px 18px;
+            display: none; align-items: center; gap: 12px;
+            margin-bottom: 20px; font-size: 0.88rem; font-weight: 600;
+        }
+        .closed-warning.show { display: flex; animation: fadeUp 0.4s ease both; }
+
+        @media (max-width: 1000px) { .dash-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<script>(function(){if(localStorage.getItem("adminTheme")==="dark")document.body.classList.add("dark");})()</script>
+<script src="admin.js"></script>
+<script src="../schedule.js"></script>
+<script>if(!localStorage.getItem("adminCanteen")) window.location.href="admin-login.html";</script>
+
+
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-circle">🍽</div>
+        <div><div class="logo-name">Canteen</div><div class="logo-sub">Admin Panel</div></div>
+    </div>
+    <div class="nav-section">Main</div>
+    <a class="nav-link active" href="admin-dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a class="nav-link" href="admin-orders.html"><span class="nav-icon">🧾</span> Orders <span class="nav-badge" id="pendingBadge"></span></a>
+    <a class="nav-link" href="admin-menu.html"><span class="nav-icon">🍽</span> Menu</a>
+    <a class="nav-link" href="admin-schedule.html"><span class="nav-icon">🕐</span> Schedule</a>
+    <div class="nav-section">Reports</div>
+    <a class="nav-link" href="admin-customers.html"><span class="nav-icon">👥</span> Customers</a>
+    <a class="nav-link" href="admin-reviews.html"><span class="nav-icon">⭐</span> Reviews</a>
+    <div class="sidebar-promo">
+        <span class="promo-icon">🍳</span>
+        <div class="promo-title">Manage your menu easily</div>
+        <div class="promo-sub">Add or update items anytime</div>
+        <button class="promo-btn" onclick="window.location.href='admin-menu.html'">+ Add Item</button>
+    </div>
+    <div class="sidebar-footer">
+        <button class="logout-nav" onclick="adminLogout()"><span>🚪</span> Log out</button>
+    </div>
+</aside>
+
+<div class="main">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Dashboard</h1>
+            <p id="welcomeMsg">Welcome back, Admin!</p>
+        </div>
+        <div class="topbar-right">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button><span id="canteenBadge" style="font-size:0.75rem;font-weight:700;padding:5px 14px;border-radius:20px;background:var(--pink-light);color:var(--pink2)"></span>
+            <div class="topbar-search"><span>🔍</span><input type="text" placeholder="Search here..."></div>
+            <div class="admin-bell-wrap" id="adminBellWrap">
+                <button class="admin-bell-btn" id="adminBellBtn" title="New Orders">
+                    🔔
+                    <div class="admin-bell-badge" id="adminBellBadge">0</div>
+                </button>
+                <div class="admin-bell-dropdown" id="adminBellDropdown">
+                    <div class="bell-drop-header">
+                        <div class="bell-drop-title">🛒 Incoming Orders <span id="bellUnreadCount" style="font-size:0.72rem;color:var(--muted);font-weight:600"></span></div>
+                        <button class="bell-clear-btn" onclick="clearBellOrders()">Mark all read</button>
+                    </div>
+                    <div class="bell-drop-list" id="bellDropList"></div>
+                    <div class="bell-drop-footer"><a href="admin-orders.html">View all orders →</a></div>
+                </div>
+            </div>
+            <div class="admin-pill">
+                <div class="admin-avatar">A</div>
+                <div><div class="admin-name">Admin</div><div class="admin-role">Canteen Manager</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <!-- ══ SKELETON (shown while loading) ══ -->
+        <div id="skeleton" style="display:block">
+
+            <!-- Stat cards skeleton -->
+            <div class="sk-stats-grid">
+                <div class="sk-stat-card">
+                    <div class="sk-stat-left">
+                        <div class="sk sk-stat-val"></div>
+                        <div class="sk sk-stat-label"></div>
+                    </div>
+                    <div class="sk sk-stat-icon"></div>
+                </div><div class="sk-stat-card">
+                    <div class="sk-stat-left">
+                        <div class="sk sk-stat-val"></div>
+                        <div class="sk sk-stat-label"></div>
+                    </div>
+                    <div class="sk sk-stat-icon"></div>
+                </div><div class="sk-stat-card">
+                    <div class="sk-stat-left">
+                        <div class="sk sk-stat-val"></div>
+                        <div class="sk sk-stat-label"></div>
+                    </div>
+                    <div class="sk sk-stat-icon"></div>
+                </div><div class="sk-stat-card">
+                    <div class="sk-stat-left">
+                        <div class="sk sk-stat-val"></div>
+                        <div class="sk sk-stat-label"></div>
+                    </div>
+                    <div class="sk sk-stat-icon"></div>
+                </div><div class="sk-stat-card">
+                    <div class="sk-stat-left">
+                        <div class="sk sk-stat-val"></div>
+                        <div class="sk sk-stat-label"></div>
+                    </div>
+                    <div class="sk sk-stat-icon"></div>
+                </div>
+            </div>
+
+            <!-- Two column skeleton -->
+            <div style="display:grid;grid-template-columns:1fr 300px;gap:22px">
+                <div>
+                    <div class="sk-section-hdr" style="margin-bottom:14px">
+                        <div class="sk sk-title"></div><div class="sk sk-link"></div>
+                    </div>
+                    <div class="sk-table">
+                        <div class="sk-table-header">
+                            <div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div>
+                        </div>
+                        <div class="sk-table-row">
+                            <div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div>
+                        </div><div class="sk-table-row">
+                            <div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div>
+                        </div><div class="sk-table-row">
+                            <div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div>
+                        </div><div class="sk-table-row">
+                            <div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div>
+                        </div><div class="sk-table-row">
+                            <div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="sk-section-hdr" style="margin-bottom:14px">
+                        <div class="sk sk-title"></div>
+                    </div>
+                    <div class="sk-queue">
+                        <div class="sk-queue-top">
+                            <div class="sk-queue-label"></div>
+                            <div class="sk-queue-num"></div>
+                        </div>
+                        <div class="sk-queue-cols">
+                            <div class="sk-queue-col">
+                                <div class="sk sk-col-title"></div>
+                                <div class="sk-tokens-row">
+                                    <div class="sk sk-tok"></div>
+                                    <div class="sk sk-tok"></div>
+                                </div>
+                            </div>
+                            <div class="sk-queue-col">
+                                <div class="sk sk-col-title"></div>
+                                <div class="sk-tokens-row">
+                                    <div class="sk sk-tok"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ REAL CONTENT (hidden until loaded) ══ -->
+        <div id="realContent" style="display:none">
+
+
+
+        <!-- SESSION STATUS CARD -->
+        <div class="session-card" id="sessionCard">
+            <div class="session-header" id="sessionHeader">
+                <span id="sessionEmoji">🍽</span>
+                <span id="sessionTitle">Loading session...</span>
+                <span style="margin-left:auto;font-size:0.72rem;color:var(--muted)" id="sessionCountdown"></span>
+            </div>
+            <div class="session-card-inner" id="sessionSlots"><!-- built by renderSession() --></div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="dash-grid">
+            <!-- LEFT -->
+            <div>
+                <!-- Orders Summary -->
+                <div class="section-hdr">
+                    <div><h2>Orders Summary</h2><div style="font-size:0.78rem;color:var(--muted)">Today's overview</div></div>
+                    <div class="tab-group">
+                        <button class="tab-item" onclick="setTab('monthly',this)">Monthly</button>
+                        <button class="tab-item" onclick="setTab('weekly',this)">Weekly</button>
+                        <button class="tab-item active" onclick="setTab('today',this)">Today</button>
+                    </div>
+                </div>
+                <div class="panel" style="margin-bottom:22px">
+                    <div class="summary-ring">
+                        <div class="ring-wrap">
+                            <svg width="110" height="110" viewBox="0 0 110 110">
+                                <circle cx="55" cy="55" r="45" fill="none" stroke="#eef0f7" stroke-width="10"/>
+                                <circle cx="55" cy="55" r="45" fill="none" stroke="url(#g1)" stroke-width="10" stroke-linecap="round" stroke-dasharray="283" id="ringCircle" stroke-dashoffset="283"/>
+                                <defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f8719a"/><stop offset="100%" stop-color="#f4436c"/></linearGradient></defs>
+                            </svg>
+                            <div class="ring-center"><div class="ring-pct" id="ringPct">0%</div><div class="ring-lbl">done</div></div>
+                        </div>
+                        <div class="ring-info">
+                            <h3>Total Revenue</h3>
+                            <div class="ring-big" id="ringRevenue">₹0</div>
+                            <div class="ring-sub" id="ringSubtext">No orders yet today</div>
+                        </div>
+                    </div>
+                    <div class="ring-counts" id="ringCounts"></div>
+                </div>
+
+                <!-- Recent Orders Table -->
+                <div class="section-hdr">
+                    <h2>Recent Orders</h2>
+                    <a href="admin-orders.html" style="font-size:0.8rem;color:var(--pink);text-decoration:none;font-weight:700">View all →</a>
+                </div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead><tr><th>Token</th><th>Items</th><th>Canteen</th><th>Payment</th><th>Total</th><th>Status</th></tr></thead>
+                        <tbody id="recentBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- RIGHT -->
+            <div>
+                <!-- Queue Board -->
+                <div class="section-hdr"><h2>Live Queue</h2></div>
+                <div class="queue-board" style="margin-bottom:20px">
+                    <div class="queue-now">
+                        <div class="queue-now-label">Now Serving</div>
+                        <div class="queue-now-num" id="nowServingNum">–</div>
+                    </div>
+                    <div class="queue-cols">
+                        <div class="queue-col">
+                            <div class="queue-col-title preparing">Preparing</div>
+                            <div class="queue-tokens" id="preparingTokens"></div>
+                        </div>
+                        <div class="queue-col">
+                            <div class="queue-col-title ready">Ready</div>
+                            <div class="queue-tokens" id="readyTokens"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Trending -->
+                <div class="section-hdr"><h2>Daily Trending</h2></div>
+                <div class="panel" id="trendingPanel"></div>
+            </div>
+        </div>
+    </div>
+</div><!-- /realContent -->
+</div><!-- /main -->
+
+<div class="toast" id="adminToast"><span id="toastIcon">✅</span><span id="toastMsg"></span></div>
+
+<script>
+    // ── Declare adminCanteen for this script ──
+    var adminCanteen = localStorage.getItem("adminCanteen") || "MRC";
+
+    // ── SESSION DISPLAY ──────────────────────
+
+    // ── Inline schedule — always reads from localStorage ──
+    if (typeof getCurrentSession === "undefined") {
+        function _loadSched() {
+            try { var s = localStorage.getItem("canteenSchedule"); if(s) return JSON.parse(s); } catch(e){}
+            return { breakfast:{start:8,startMin:0,end:11,endMin:0,label:"Breakfast",emoji:"🌅",enabled:true}, lunch:{start:12,startMin:0,end:15,endMin:0,label:"Lunch",emoji:"🍱",enabled:true}, snacks:{start:16,startMin:0,end:19,endMin:0,label:"Snacks",emoji:"🍿",enabled:true}, dinner:{start:19,startMin:0,end:24,endMin:0,label:"Dinner",emoji:"🌙",enabled:true} };
+        }
+        window.canteenSchedule = _loadSched();
+        window.getCurrentSession = function() {
+            window.canteenSchedule = _loadSched();
+            var ov = localStorage.getItem("canteenOverride_" + adminCanteen);
+            if (ov === "closed") return "closed";
+            var now = new Date(); var cur = now.getHours() + now.getMinutes()/60;
+            for (var k in canteenSchedule) {
+                var s = canteenSchedule[k]; if(!s.enabled) continue;
+                var sh = s.start+(s.startMin||0)/60, eh = s.end+(s.endMin||0)/60;
+                if (cur>=sh && cur<eh) return k;
+            }
+            if (ov === "open") return "manual_open";
+            return "closed";
+        };
+        window.getNextSession = function() {
+            window.canteenSchedule = _loadSched();
+            var cur = new Date().getHours()+new Date().getMinutes()/60;
+            for (var k in canteenSchedule) { var s=canteenSchedule[k]; if(s.enabled && s.start>cur) return Object.assign({key:k},s); }
+            return null;
+        };
+        window.getMinutesLeft = function() {
+            var sk = getCurrentSession(); if(sk==="closed"||sk==="manual_open") return sk==="manual_open"?999:0;
+            window.canteenSchedule = _loadSched();
+            var s = canteenSchedule[sk]; if(!s) return 0;
+            var end = new Date(); end.setHours(s.end,s.endMin||0,0,0);
+            return Math.max(0,Math.floor((end-new Date())/60000));
+        };
+        window.fmtHour = function(h,m) {
+            m=m||0; var p=h<12?"AM":"PM"; var d=h>12?h-12:(h===0?12:h);
+            return d+":"+String(m).padStart(2,"0")+" "+p;
+        };
+    }
+
+    var _sessionHash = "";
+
+    function renderSession() {
+        var liveSched = {};
+        try { liveSched = JSON.parse(localStorage.getItem("canteenSchedule")) || {}; } catch(e) {}
+        if (!Object.keys(liveSched).length) {
+            liveSched = {
+                breakfast: { start:8,  startMin:0, end:11, endMin:0, label:"Breakfast", emoji:"🌅", enabled:true },
+                lunch:     { start:12, startMin:0, end:15, endMin:0, label:"Lunch",     emoji:"🍱", enabled:true },
+                snacks:    { start:16, startMin:0, end:19, endMin:0, label:"Snacks",    emoji:"🍿", enabled:true },
+                dinner:    { start:19, startMin:0, end:24, endMin:0, label:"Dinner",    emoji:"🌙", enabled:true }
+            };
+        }
+
+        // Determine current session from liveSched
+        var override = localStorage.getItem("canteenOverride_" + adminCanteen);
+        var now = new Date();
+        var cur = now.getHours() + now.getMinutes() / 60;
+        var session = "closed";
+        if (override === "open") {
+            session = "manual_open";
+        } else if (override !== "closed") {
+            for (var k in liveSched) {
+                var _s = liveSched[k];
+                if (!_s || !_s.enabled) continue;
+                var _sh = _s.start + (_s.startMin||0) / 60;
+                var _eh = _s.end   + (_s.endMin  ||0) / 60;
+                if (cur >= _sh && cur < _eh) { session = k; break; }
+            }
+        }
+
+        // Skip re-render if schedule state hasn't changed
+        var _sHash = session + JSON.stringify(liveSched) + (override||"");
+        if (_sHash === _sessionHash) return;
+        _sessionHash = _sHash;
+
+        // Helper: format time
+        function fmt(h, m) {
+            m = m || 0;
+            var p = h < 12 ? "AM" : "PM";
+            var d = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+            return d + ":" + String(m).padStart(2, "0") + " " + p;
+        }
+
+        // Build slot cards
+        var slotsWrap = document.getElementById("sessionSlots");
+        if (slotsWrap) {
+            var html = "";
+            for (var key in liveSched) {
+                var s = liveSched[key];
+                if (!s) continue;
+
+                // Format time range
+                var startStr = fmt(s.start, s.startMin || 0);
+                var endH = s.end === 24 ? 0 : s.end;
+                var endM = s.end === 24 ? 0 : (s.endMin || 0);
+                var endStr;
+                if (s.end === 24) { endStr = "12:00 AM"; }
+                else { endStr = fmt(s.end, s.endMin || 0); }
+                var range = startStr + " – " + endStr;
+
+                // Status label
+                var statusHtml;
+                var sh = s.start + (s.startMin||0)/60;
+                var eh = s.end   + (s.endMin  ||0)/60;
+                if (!s.enabled) {
+                    statusHtml = "<span style='color:var(--red);font-size:0.7rem;font-weight:700'>Disabled</span>";
+                } else if (key === session) {
+                    statusHtml = "<span style='color:var(--green);font-weight:800'>● Active now</span>";
+                } else if (eh <= cur) {
+                    statusHtml = "<span style='color:var(--muted)'>Done for today</span>";
+                } else {
+                    statusHtml = "<span style='color:var(--muted)'>Opens at " + startStr + "</span>";
+                }
+
+                html += "<div class='session-slot'>"
+                      + "<div class='session-slot-label'>" + (s.emoji || "") + " " + (s.label || key) + "</div>"
+                      + "<div class='session-slot-val' style='font-size:0.85rem'>" + range + "</div>"
+                      + "<div class='session-slot-sub'>" + statusHtml + "</div>"
+                      + "</div>";
+            }
+
+            // Current session column
+            var curLabel, curClass, curSub;
+            if (session === "closed") {
+                curLabel = "Closed"; curClass = "session-slot-val session-closed";
+                var next = null;
+                for (var nk in liveSched) {
+                    var ns = liveSched[nk];
+                    if (ns && ns.enabled && ns.start > cur) { next = ns; break; }
+                }
+                curSub = next ? "Next: " + next.label + " at " + fmt(next.start, next.startMin||0) : "No more sessions today";
+            } else if (session === "manual_open") {
+                curLabel = "Open"; curClass = "session-slot-val session-open"; curSub = "Manually opened";
+            } else {
+                var cs = liveSched[session];
+                curLabel = cs ? cs.label : session;
+                curClass = "session-slot-val session-open";
+                var left = 0;
+                if (cs) {
+                    var endTime = new Date(); endTime.setHours(cs.end, cs.endMin||0, 0, 0);
+                    left = Math.max(0, Math.floor((endTime - now) / 60000));
+                }
+                var hrs = Math.floor(left / 60), mins = left % 60;
+                curSub = hrs > 0 ? "Ends in " + hrs + "h " + mins + "m" : "Ends in " + mins + " min";
+            }
+
+            html += "<div class='session-slot'>"
+                  + "<div class='session-slot-label'>Current</div>"
+                  + "<div class='session-slot-val " + curClass + "'>" + curLabel + "</div>"
+                  + "<div class='session-slot-sub'><span style='color:var(--muted)'>" + curSub + "</span></div>"
+                  + "</div>";
+
+            slotsWrap.innerHTML = html;
+        }
+
+        // Update header bar
+        var header   = document.getElementById("sessionHeader");
+        var title    = document.getElementById("sessionTitle");
+        var emoji    = document.getElementById("sessionEmoji");
+        var countdown = document.getElementById("sessionCountdown");
+        if (!header || !title) return;
+
+        if (session === "closed") {
+            header.style.background = "rgba(244,67,108,0.06)";
+            if (emoji) emoji.textContent = "⛔";
+            title.textContent = "Canteen Closed — Orders Disabled";
+            title.style.color = "var(--red)";
+            if (countdown) countdown.textContent = "";
+        } else if (session === "manual_open") {
+            header.style.background = "rgba(48,195,158,0.05)";
+            if (emoji) emoji.textContent = "🟢";
+            title.textContent = "Canteen Manually Opened";
+            title.style.color = "var(--green)";
+            if (countdown) countdown.textContent = "Override active";
+        } else {
+            var liveS = liveSched[session];
+            if (!liveS) return;
+            header.style.background = "rgba(48,195,158,0.05)";
+            if (emoji) emoji.textContent = liveS.emoji || "🍽";
+            title.textContent = liveS.label + " Session — " + fmt(liveS.start, liveS.startMin||0) + " to " + (liveS.end === 24 ? "12:00 AM" : fmt(liveS.end, liveS.endMin||0));
+            title.style.color = "var(--green)";
+            var endT = new Date(); endT.setHours(liveS.end, liveS.endMin||0, 0, 0);
+            var leftMin = Math.max(0, Math.floor((endT - now) / 60000));
+            var lh = Math.floor(leftMin/60), lm = leftMin%60;
+            if (countdown) countdown.textContent = lh > 0 ? "Ends in " + lh + "h " + lm + "m" : "Ends in " + lm + " min";
+        }
+    }
+
+    function showContent() {
+        const sk = document.getElementById("skeleton");
+        const ct = document.getElementById("realContent");
+        if (sk && sk.style.display !== "none") {
+            sk.classList.add("hiding");
+            setTimeout(() => { sk.style.display = "none"; ct.style.display = "block"; }, 400);
+        }
+    }
+
+    var _dashHash = "";
+
+    function render() {
+        const orders  = getMyOrders();
+        const today   = new Date().toDateString();
+        const todayO  = orders.filter(o => new Date(o.date).toDateString() === today);
+        const pending = todayO.filter(o => ["Preparing","Pending"].includes(o.orderStatus));
+        const ready   = todayO.filter(o => o.orderStatus === "Ready");
+        const done    = todayO.filter(o => o.orderStatus === "Picked Up");
+        const revenue = todayO.reduce((s,o) => s+(o.total||0), 0);
+        const allRev  = orders.reduce((s,o) => s+(o.total||0), 0);
+
+        // Skip re-render if nothing changed — prevents flickering
+        const newHash = orders.map(o => o.orderID + o.orderStatus).join(",") +
+                        "|" + todayO.length + "|" + revenue;
+        if (newHash === _dashHash) return;
+        _dashHash = newHash;
+
+        // Pending badge
+        const pb = document.getElementById("pendingBadge");
+        if(pending.length) { pb.textContent = pending.length; pb.style.display = ""; }
+        else pb.style.display = "none";
+
+        // Stats
+        document.getElementById("statsGrid").innerHTML = [
+            {cls:"",       icon:"🧾", val:todayO.length,   label:"Orders Today",    sub:"All canteens"},
+            {cls:"amber",  icon:"🍳", val:pending.length,  label:"Preparing",       sub:"In kitchen"},
+            {cls:"green",  icon:"✅", val:ready.length,    label:"Ready",           sub:"For pickup"},
+            {cls:"blue",   icon:"💰", val:"₹"+revenue,     label:"Revenue Today",   sub:"₹"+allRev+" all time"},
+        ].map((s,i) => `
+            <div class="stat-card ${s.cls}" style="animation-delay:${i*0.07}s">
+                <div class="stat-info">
+                    <div class="stat-value">${s.val}</div>
+                    <div class="stat-label">${s.label}</div>
+                    <div style="font-size:0.7rem;opacity:0.7;margin-top:2px">${s.sub}</div>
+                </div>
+                <div class="stat-icon-w">${s.icon}</div>
+            </div>`).join('');
+
+        // Ring
+        const pct = todayO.length ? Math.round((done.length / todayO.length) * 100) : 0;
+        document.getElementById("ringPct").textContent = pct + "%";
+        document.getElementById("ringCircle").style.strokeDashoffset = 283 - (283 * pct / 100);
+        document.getElementById("ringRevenue").textContent = "₹" + revenue;
+        document.getElementById("ringSubtext").textContent = todayO.length ? `from ${todayO.length} orders today` : "No orders yet today";
+        document.getElementById("ringCounts").innerHTML = [
+            {num: pending.length, lbl: "Preparing", col: "var(--amber)"},
+            {num: ready.length,   lbl: "Ready",     col: "var(--green)"},
+            {num: done.length,    lbl: "Picked Up",  col: "var(--muted)"},
+        ].map(c => `<div class="ring-count"><div class="ring-count-num" style="color:${c.col}">${c.num}</div><div class="ring-count-lbl">${c.lbl}</div></div>`).join('');
+
+        // Recent
+        const recent = [...orders].reverse().slice(0,6);
+        document.getElementById("recentBody").innerHTML = recent.length
+            ? recent.map(o => `<tr>
+                <td><span style="background:var(--grad);color:white;padding:3px 11px;border-radius:20px;font-size:0.78rem;font-weight:800">#${o.tokenNumber}</span></td>
+                <td style="color:var(--muted);font-size:0.8rem">${o.items.map(i=>i.name).join(", ")}</td>
+                <td>${o.canteen}</td>
+                <td style="color:var(--muted)">${o.paymentMethod}</td>
+                <td style="font-weight:700;color:var(--pink)">₹${o.total}</td>
+                <td><span class="badge badge-${(o.orderStatus||'').toLowerCase()}">${o.orderStatus}</span></td>
+              </tr>`).join('')
+            : `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">No orders yet</td></tr>`;
+
+        // Queue
+        const active = orders.filter(o => o.orderStatus !== "Picked Up");
+        const maxReady = orders.filter(o=>o.orderStatus==="Ready").reduce((m,o)=>Math.max(m,o.tokenNumber),0);
+        document.getElementById("nowServingNum").textContent = maxReady || "–";
+        const prep2 = active.filter(o=>["Preparing","Pending"].includes(o.orderStatus));
+        const rdy2  = active.filter(o=>o.orderStatus==="Ready");
+        document.getElementById("preparingTokens").innerHTML = prep2.length ? prep2.map(o=>`<div class="queue-token preparing">${o.tokenNumber}</div>`).join('') : '<span style="font-size:0.78rem;color:var(--muted)">None</span>';
+        document.getElementById("readyTokens").innerHTML    = rdy2.length  ? rdy2.map(o=>`<div class="queue-token ready">${o.tokenNumber}</div>`).join('')  : '<span style="font-size:0.78rem;color:var(--muted)">None</span>';
+
+        // Trending
+        const freq = {};
+        orders.forEach(o => o.items.forEach(i => { freq[i.name] = (freq[i.name]||{count:0,price:i.price,emoji:"🍽"}); freq[i.name].count += i.quantity; }));
+        const sorted = Object.entries(freq).sort((a,b)=>b[1].count-a[1].count).slice(0,5);
+        document.getElementById("trendingPanel").innerHTML = sorted.length
+            ? sorted.map(([name,d],i) => `
+                <div class="trending-item">
+                    <div class="trending-num">#${i+1}</div>
+                    <div class="trending-emoji">🍽</div>
+                    <div style="flex:1"><div class="trending-name">${name}</div><div class="trending-orders">${d.count} orders</div></div>
+                    <div class="trending-price">₹${d.price}</div>
+                </div>`).join('')
+            : '<div class="empty"><span class="empty-icon">📊</span><h3>No data yet</h3></div>';
+    }
+
+    function setTab(tab, btn) {
+        document.querySelectorAll(".tab-item").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+    }
+
+    // Show skeleton then real content after first render
+    function initRender() {
+        render();
+        renderSession();
+        document.getElementById("skeleton").style.display    = "none";
+        document.getElementById("realContent").style.display = "block";
+    }
+    initRender();
+    showContent();
+
+    // Both render (orders/stats) and renderSession (schedule bar) every 2s
+    setInterval(function() {
+        render();
+        try { renderSession(); } catch(e) {}
+    }, 2000);
+
+    // ── New Order Detection ────────────────────────────────────
+    var lastKnownOrderIds = new Set(
+        getMyOrders().map(function(o){ return o.orderID; })
+    );
+
+    function playAdminSound() {
+        try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            // Urgent double-beep for new order
+            var tones = [
+                { freq: 880,  start: 0,    dur: 0.12 },
+                { freq: 880,  start: 0.16, dur: 0.12 },
+                { freq: 1100, start: 0.34, dur: 0.2  }
+            ];
+            tones.forEach(function(t) {
+                var osc  = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "square";
+                osc.frequency.setValueAtTime(t.freq, ctx.currentTime + t.start);
+                gain.gain.setValueAtTime(0, ctx.currentTime + t.start);
+                gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + t.start + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t.start + t.dur);
+                osc.start(ctx.currentTime + t.start);
+                osc.stop(ctx.currentTime + t.start + t.dur + 0.05);
+            });
+        } catch(e) {}
+    }
+
+    function dismissNewOrderPopup() {
+        var el = document.getElementById("newOrderPopup");
+        if (el) el.remove();
+    }
+
+    function showNewOrderPopup(order) {
+        // Create popup if not exists
+        var existing = document.getElementById("newOrderPopup");
+        if (existing) existing.remove();
+
+        var items = (order.items||[]).map(function(i){ return i.name + " ×" + i.quantity; }).join(", ");
+        var popup = document.createElement("div");
+        popup.id = "newOrderPopup";
+        popup.style.cssText = [
+            "position:fixed", "bottom:28px", "right:28px", "z-index:9999",
+            "background:var(--white)", "border:1.5px solid var(--green)",
+            "border-radius:18px", "padding:18px 22px", "max-width:320px",
+            "box-shadow:0 12px 48px rgba(0,0,0,0.3)",
+            "animation:slideInRight 0.4s cubic-bezier(0.34,1.56,0.64,1) both",
+            "display:flex", "gap:14px", "align-items:flex-start"
+        ].join(";");
+
+        popup.innerHTML =
+            "<div style='font-size:1.8rem;animation:bellRing 0.5s ease'>🛒</div>" +
+            "<div style='flex:1'>" +
+                "<div style='font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);margin-bottom:4px'>New Order!</div>" +
+                "<div style='font-size:0.95rem;font-weight:800;margin-bottom:3px'>Token #" + order.tokenNumber + "</div>" +
+                "<div style='font-size:0.78rem;color:var(--muted);margin-bottom:8px'>" + items + "</div>" +
+                "<div style='display:flex;align-items:center;justify-content:space-between'>" +
+                    "<span style='font-size:0.88rem;font-weight:700;color:var(--pink)'>₹" + order.total + "</span>" +
+                    "<button onclick='dismissNewOrderPopup()' style='background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:2px 6px'>✕</button>" +
+                "</div>" +
+            "</div>";
+
+        document.body.appendChild(popup);
+
+        // Add slide-in animation if not already in CSS
+        if (!document.getElementById("popupAnim")) {
+            var style = document.createElement("style");
+            style.id = "popupAnim";
+            style.textContent = "@keyframes slideInRight{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}";
+            document.head.appendChild(style);
+        }
+
+        // Auto-dismiss after 8 seconds
+        setTimeout(function() {
+            var el = document.getElementById("newOrderPopup");
+            if (el) {
+                el.style.transition = "opacity 0.4s, transform 0.4s";
+                el.style.opacity = "0";
+                el.style.transform = "translateX(60px)";
+                setTimeout(function(){ if(el.parentNode) el.remove(); }, 400);
+            }
+        }, 8000);
+    }
+
+    function checkNewOrders() {
+        var current = getMyOrders();
+        var newOnes = current.filter(function(o){
+            return !lastKnownOrderIds.has(o.orderID);
+        });
+        newOnes.forEach(function(order) {
+            lastKnownOrderIds.add(order.orderID);
+            playAdminSound();
+            showNewOrderPopup(order);
+        });
+        // Keep set in sync
+        current.forEach(function(o){ lastKnownOrderIds.add(o.orderID); });
+    }
+
+    // Check for new orders every 2s (same cadence as render)
+    setInterval(checkNewOrders, 2000);
+
+</script>
+
+<script>
+// ── THEME: runs on every page ──────────────────
+function toggleTheme() {
+    document.body.classList.toggle("dark");
+    const isDark = document.body.classList.contains("dark");
+    localStorage.setItem("adminTheme", isDark ? "dark" : "light");
+
+    // Update icon visibility via class (CSS handles sun/moon swap)
+    // Also update any plain emoji toggles if present
+    const btn = document.querySelector(".theme-toggle");
+    if (btn) {
+        btn.title = isDark ? "Switch to light mode" : "Switch to dark mode";
+    }
+}
+</script>
+<script>
+
+    // ══ ADMIN ORDER BELL ════════════════════════════════════════
+    var bellOpen      = false;
+    var bellReadIds   = JSON.parse(localStorage.getItem("adminBellReadIds") || "[]");
+    var bellLastCount = 0;
+
+    function getBellOrders() {
+        return getMyOrders().slice().reverse().slice(0, 30);
+    }
+
+
+    let _bellDropHash = "";
+    function renderBellDrop() {
+        var orders  = getBellOrders();
+        var listEl  = document.getElementById("bellDropList");
+        if (!listEl) return;
+
+        // Hash guard — skip if nothing changed
+        var hash = orders.map(function(o){ return o.orderID + o.orderStatus + (bellReadIds.indexOf(o.orderID)===-1?"u":"r"); }).join(",");
+        if (hash === _bellDropHash) return;
+        _bellDropHash = hash;
+
+        if (!orders.length) {
+            listEl.innerHTML = "<div class='bell-empty'><div class='bell-empty-icon'>🛒</div><div style='font-size:0.82rem'>No orders yet</div></div>";
+            return;
+        }
+        listEl.innerHTML = orders.map(function(o, i) {
+            var isUnread = bellReadIds.indexOf(o.orderID) === -1;
+            var items    = (o.items||[]).map(function(it){ return it.name + " x" + it.quantity; }).join(", ") || "—";
+            var status   = o.orderStatus || "Pending";
+            var sColor   = status==="Ready" ? "var(--green)" : status==="Picked Up" ? "var(--muted)" : "var(--amber)";
+            return "<div class='bell-order-item" + (isUnread ? " unread" : "") + "' style='animation-delay:" + (i*0.04) + "s' onclick='goToOrders()'>" +
+                "<div class='bell-order-icon'>🛒</div>" +
+                "<div class='bell-order-body'>" +
+                    "<div class='bell-order-title'>New Order <span class='bell-token-tag'>Token #" + o.tokenNumber + "</span></div>" +
+                    "<div class='bell-order-sub'>" + items + "</div>" +
+                    "<div style='display:flex;justify-content:space-between;margin-top:3px'>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:" + sColor + "'>" + status + "</span>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:var(--pink)'>&#8377;" + o.total + "</span>" +
+                    "</div>" +
+                    "<div class='bell-order-time'>" + (o.date||"") + "</div>" +
+                "</div>" +
+            "</div>";
+        }).join("");
+    }
+
+    function goToOrders() { window.location.href = 'admin-orders.html'; }
+
+    function updateAdminBell() {
+        var orders  = getBellOrders();
+        var unread  = orders.filter(function(o){ return bellReadIds.indexOf(o.orderID)===-1; }).length;
+        var badge   = document.getElementById("adminBellBadge");
+        var btn     = document.getElementById("adminBellBtn");
+        var countEl = document.getElementById("bellUnreadCount");
+        if (badge)   { badge.textContent = unread>9?"9+":String(unread); badge.classList.toggle("show",unread>0); }
+        if (countEl) { countEl.textContent = unread>0 ? "("+unread+" new)" : ""; }
+        if (btn && unread > bellLastCount && unread > 0) {
+            btn.classList.remove("ringing"); void btn.offsetWidth;
+            btn.classList.add("ringing");
+            setTimeout(function(){ btn.classList.remove("ringing"); }, 600);
+        }
+        bellLastCount = unread;
+        if (bellOpen) renderBellDrop();
+    }
+
+    function clearBellOrders() {
+        getBellOrders().forEach(function(o){ if(bellReadIds.indexOf(o.orderID)===-1) bellReadIds.push(o.orderID); });
+        localStorage.setItem("adminBellReadIds", JSON.stringify(bellReadIds));
+        _bellDropHash = ""; // force re-render
+        updateAdminBell(); renderBellDrop();
+    }
+
+    document.addEventListener("click", function(e) {
+        var wrap = document.getElementById("adminBellWrap");
+        var drop = document.getElementById("adminBellDropdown");
+        if (!drop) return;
+        if (wrap && wrap.contains(e.target)) {
+            bellOpen = !bellOpen;
+            drop.classList.toggle("open", bellOpen);
+            if (bellOpen) { renderBellDrop(); clearBellOrders(); }
+        } else { bellOpen=false; drop.classList.remove("open"); }
+    });
+
+    updateAdminBell();
+    setInterval(updateAdminBell, 2000);
+
+</script>
+</body>
+</html>

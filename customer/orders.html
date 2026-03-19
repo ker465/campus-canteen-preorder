@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders · Campus Canteen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0f0d0b; --surface: #1a1612; --card: #221e19;
+            --border: #2e2820; --amber: #f5a623; --amber-dark: #c47f0a;
+            --amber-glow: rgba(245,166,35,0.15); --text: #f0e8dc;
+            --muted: #8a7d6b; --green: #4caf80; --green-glow: rgba(76,175,128,0.12);
+        }
+        body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+        body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:1000; opacity:0.5; }
+
+        /* HEADER */
+        header { position:sticky; top:0; z-index:200; background:rgba(15,13,11,0.92); backdrop-filter:blur(20px); border-bottom:1px solid var(--border); padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:68px; }
+        .logo { display:flex; align-items:center; gap:10px; }
+        .logo-icon { width:36px; height:36px; background:var(--amber); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+        .logo h1 { font-family:'Playfair Display',serif; font-size:1.3rem; }
+        .logo span { color:var(--amber); }
+        .header-actions { display:flex; align-items:center; gap:10px; }
+        .hdr-btn { background:none; border:1px solid var(--border); color:var(--muted); font-family:'DM Sans',sans-serif; font-size:0.8rem; padding:7px 14px; border-radius:8px; cursor:pointer; transition:border-color 0.2s,color 0.2s; }
+        .hdr-btn:hover { border-color:var(--amber); color:var(--text); }
+        .hdr-btn.logout { background:var(--amber); border-color:var(--amber); color:#0f0d0b; font-weight:700; }
+        .hdr-btn.logout:hover { background:#ffb83f; }
+
+        /* ── BELL BUTTON ── */
+        .bell-wrap { position:relative; display:inline-flex; }
+        .bell-btn {
+            width:38px; height:38px; background:none;
+            border:1px solid var(--border); border-radius:10px;
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; font-size:1.15rem; color:var(--text);
+            transition:border-color 0.2s, background 0.2s;
+            position:relative;
+        }
+        .bell-btn:hover { border-color:var(--amber); background:rgba(245,166,35,0.08); }
+        .bell-btn.ring { animation:bellRing 0.55s ease; }
+        @keyframes bellRing {
+            0%,100%{transform:rotate(0)}15%{transform:rotate(14deg)}
+            30%{transform:rotate(-12deg)}45%{transform:rotate(9deg)}
+            60%{transform:rotate(-6deg)}75%{transform:rotate(3deg)}
+        }
+        .bell-badge {
+            position:absolute; top:-6px; right:-6px;
+            min-width:18px; height:18px; background:#ef5350; color:#fff;
+            font-size:0.6rem; font-weight:800; border-radius:20px; padding:0 4px;
+            display:flex; align-items:center; justify-content:center;
+            border:2px solid var(--bg);
+            opacity:0; transform:scale(0);
+            transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            pointer-events:none;
+        }
+        .bell-badge.show { opacity:1; transform:scale(1); animation:badgePulse 2s ease infinite; }
+        @keyframes badgePulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,83,80,0.5)} 50%{box-shadow:0 0 0 5px rgba(239,83,80,0)} }
+
+        /* ── NOTIFICATION DROPDOWN ── */
+        .notif-panel {
+            position:absolute; top:calc(100% + 12px); right:0;
+            width:300px; background:#1a1612; border:1px solid #2e2820;
+            border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.7);
+            z-index:9999; overflow:hidden;
+            display:none;
+            animation:panelIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .notif-panel.open { display:block; }
+        @keyframes panelIn { from{opacity:0;transform:translateY(-8px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+        .notif-panel-hdr { padding:13px 16px 11px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #2e2820; }
+        .notif-panel-title { font-size:0.83rem; font-weight:700; display:flex; align-items:center; gap:7px; }
+        .live-dot { width:6px; height:6px; border-radius:50%; background:#4caf80; display:inline-block; animation:livePulse 1.5s ease infinite; }
+        @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .notif-mark-btn { font-size:0.68rem; color:var(--muted); background:none; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; padding:3px 6px; border-radius:6px; transition:color 0.2s; }
+        .notif-mark-btn:hover { color:var(--amber); }
+
+        .notif-scroll { max-height:300px; overflow-y:auto; }
+        .notif-scroll::-webkit-scrollbar { width:3px; }
+        .notif-scroll::-webkit-scrollbar-thumb { background:#2e2820; border-radius:3px; }
+
+        .notif-row { padding:12px 16px; border-bottom:1px solid #2e2820; display:flex; gap:10px; align-items:flex-start; transition:background 0.15s; }
+        .notif-row:last-child { border-bottom:none; }
+        .notif-row.unread { background:rgba(245,166,35,0.06); }
+        .notif-row:hover { background:rgba(245,166,35,0.04); }
+        .n-dot { width:7px; height:7px; border-radius:50%; background:var(--amber); flex-shrink:0; margin-top:5px; }
+        .notif-row.read .n-dot { opacity:0; }
+        .n-ico { font-size:1.2rem; flex-shrink:0; }
+        .n-msg  { font-size:0.81rem; color:var(--text); line-height:1.4; font-weight:500; }
+        .n-time { font-size:0.67rem; color:var(--muted); margin-top:2px; }
+        .notif-empty { padding:32px 16px; text-align:center; color:var(--muted); font-size:0.8rem; }
+        .notif-footer-link { padding:9px 16px; border-top:1px solid #2e2820; text-align:center; }
+        .notif-footer-link a { font-size:0.72rem; color:var(--amber); text-decoration:none; font-weight:600; }
+
+        /* ── POPUP TOAST ── */
+        .notif-toast {
+            position:fixed; top:80px; right:20px; max-width:300px;
+            background:#221e19; border:1px solid var(--amber);
+            border-left:4px solid var(--amber); border-radius:14px;
+            padding:14px 36px 14px 16px;
+            box-shadow:0 12px 40px rgba(0,0,0,0.6);
+            z-index:99999; display:flex; gap:12px; align-items:flex-start;
+            transform:translateX(120%);
+            transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            cursor:pointer;
+        }
+        .notif-toast.show { transform:translateX(0); }
+        .toast-ico { font-size:1.4rem; flex-shrink:0; }
+        .toast-title { font-size:0.7rem; font-weight:700; color:var(--amber); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:3px; }
+        .toast-msg { font-size:0.83rem; color:var(--text); font-weight:500; line-height:1.4; }
+        .toast-close { position:absolute; top:8px; right:10px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:0.9rem; padding:2px 5px; transition:color 0.2s; }
+        .toast-close:hover { color:var(--text); }
+
+        /* CONTENT */
+        .page-hero { padding:40px 32px 24px; }
+        .page-eyebrow { font-size:0.7rem; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--amber); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+        .page-eyebrow::before, .page-eyebrow::after { content:''; width:20px; height:1px; background:var(--amber-dark); }
+        .page-title { font-family:'Playfair Display',serif; font-size:clamp(1.8rem,4vw,2.4rem); font-weight:900; }
+        .section-label { padding:0 32px 14px; display:flex; align-items:center; gap:16px; }
+        .section-label span { font-size:0.7rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+        .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+        .orders-list { padding:0 32px 48px; max-width:900px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+
+        /* EMPTY */
+        .empty-state { text-align:center; padding:72px 32px; color:var(--muted); }
+        .empty-icon { font-size:3rem; margin-bottom:16px; display:block; opacity:0.5; }
+        .empty-state h3 { font-family:'Playfair Display',serif; font-size:1.3rem; color:var(--text); margin-bottom:8px; }
+        .empty-state p { font-size:0.9rem; margin-bottom:24px; }
+        .order-now-btn { display:inline-block; padding:12px 28px; background:var(--amber); color:#0f0d0b; border:none; border-radius:12px; font-family:'DM Sans',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:background 0.2s,transform 0.15s; }
+        .order-now-btn:hover { background:#ffb83f; transform:translateY(-2px); }
+
+        /* ORDER CARD */
+        .order-card { background:var(--card); border:1px solid var(--border); border-radius:20px; overflow:hidden; }
+        .card-top { padding:20px 24px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; border-bottom:1px solid var(--border); }
+        .order-id { font-size:0.75rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+        .token-badge { display:inline-flex; align-items:center; gap:6px; background:var(--amber-glow); border:1px solid var(--amber-dark); color:var(--amber); font-size:1.1rem; font-weight:700; font-family:'Playfair Display',serif; padding:4px 14px; border-radius:20px; }
+        .token-label { font-family:'DM Sans',sans-serif; font-size:0.65rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; opacity:0.7; }
+        .order-meta-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+        .meta-chip { font-size:0.75rem; padding:3px 10px; border-radius:20px; background:var(--surface); color:var(--muted); border:1px solid var(--border); }
+        .card-right { text-align:right; flex-shrink:0; }
+        .order-date { font-size:0.75rem; color:var(--muted); margin-bottom:8px; }
+        .status-badge { display:inline-flex; align-items:center; gap:5px; font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:20px; }
+        .status-badge.preparing { background:rgba(245,166,35,0.12); color:var(--amber); border:1px solid rgba(245,166,35,0.25); }
+        .status-badge.ready { background:var(--green-glow); color:var(--green); border:1px solid rgba(76,175,128,0.25); }
+        .status-badge.picked-up { background:rgba(138,125,107,0.12); color:var(--muted); border:1px solid rgba(138,125,107,0.2); }
+        .status-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+        .card-items { padding:16px 24px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
+        .item-row { display:flex; justify-content:space-between; align-items:center; }
+        .item-name { font-size:0.88rem; display:flex; align-items:center; gap:8px; }
+        .item-qty { font-size:0.75rem; color:var(--muted); background:var(--surface); padding:1px 8px; border-radius:10px; }
+        .item-price { font-size:0.88rem; color:var(--muted); }
+        .card-footer { padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
+        .payment-method { font-size:0.78rem; color:var(--muted); display:flex; align-items:center; gap:6px; }
+        .total-amount { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:700; }
+        .total-amount sup { font-family:'DM Sans',sans-serif; font-size:0.75rem; font-weight:500; color:var(--muted); }
+        .token-board { display:flex; border-top:1px solid var(--border); }
+        .token-cell { flex:1; padding:12px 16px; display:flex; flex-direction:column; gap:3px; border-right:1px solid var(--border); }
+        .token-cell:last-child { border-right:none; }
+        .token-cell-label { font-size:0.65rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+        .token-cell-value { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:700; color:var(--muted); }
+        .token-cell.mine .token-cell-value { color:var(--amber); font-size:1.5rem; }
+        .token-cell.ahead .token-cell-value { color:var(--text); }
+
+        @media (max-width:600px) {
+            header { padding:0 16px; }
+            .page-hero, .section-label { padding-left:16px; padding-right:16px; }
+            .orders-list { padding:0 16px 40px; }
+            .card-top { flex-direction:column; }
+            .card-right { text-align:left; }
+        }
+    
+        /* ══ REVIEW MODAL ══════════════════════════════════════ */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 9000;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 24px;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.show { opacity: 1; pointer-events: all; }
+
+        .review-modal {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 36px 32px;
+            width: 100%; max-width: 420px;
+            text-align: center;
+            transform: translateY(30px) scale(0.95);
+            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+        }
+        .modal-overlay.show .review-modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .review-emoji { font-size: 3rem; margin-bottom: 12px; animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+        @keyframes popIn { from{opacity:0;transform:scale(0.4)} to{opacity:1;transform:scale(1)} }
+
+        .review-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 900; margin-bottom: 6px; }
+        .review-sub   { font-size: 0.85rem; color: var(--muted); margin-bottom: 24px; }
+
+        /* Star rating */
+        .star-row { display: flex; justify-content: center; gap: 8px; margin-bottom: 22px; }
+        .star {
+            font-size: 2.2rem; cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), filter 0.2s;
+            filter: grayscale(1) opacity(0.4);
+            user-select: none;
+        }
+        .star.active, .star:hover { filter: grayscale(0) opacity(1); transform: scale(1.25) rotate(-5deg); }
+        .star.active ~ .star { filter: grayscale(1) opacity(0.4); transform: none; }
+
+        /* Feedback text */
+        .review-textarea {
+            width: 100%; background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border); color: var(--text);
+            font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+            padding: 12px 14px; border-radius: 12px; outline: none;
+            resize: none; margin-bottom: 18px;
+            transition: border-color 0.2s;
+        }
+        .review-textarea:focus { border-color: var(--amber); }
+        .review-textarea::placeholder { color: var(--muted); }
+
+        /* Buttons */
+        .review-btns { display: flex; gap: 10px; }
+        .review-submit {
+            flex: 1; padding: 13px; background: var(--amber);
+            color: #0f0d0b; border: none; border-radius: 12px;
+            font-family: 'DM Sans', sans-serif; font-size: 0.92rem; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .review-submit:hover { background: #ffb83f; transform: translateY(-2px); }
+        .review-skip {
+            padding: 13px 18px; background: none;
+            color: var(--muted); border: 1px solid var(--border); border-radius: 12px;
+            font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .review-skip:hover { color: var(--text); border-color: var(--amber); }
+
+        /* Review badge on card */
+        .review-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.72rem; font-weight: 700;
+            padding: 3px 10px; border-radius: 20px;
+            background: rgba(245,166,35,0.1); color: var(--amber);
+            border: 1px solid rgba(245,166,35,0.2);
+            cursor: pointer; transition: all 0.2s;
+        }
+        .review-badge:hover { background: rgba(245,166,35,0.18); }
+        .leave-review {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.72rem; font-weight: 700;
+            padding: 3px 10px; border-radius: 20px;
+            background: rgba(76,175,128,0.1); color: var(--green);
+            border: 1px solid rgba(76,175,128,0.2);
+            cursor: pointer; transition: all 0.2s;
+        }
+        .leave-review:hover { background: rgba(76,175,128,0.18); transform: scale(1.04); }
+
+        </style>
+</head>
+<body>
+
+<script>
+    if (localStorage.getItem("isLoggedIn") !== "true") {
+        localStorage.setItem("loginRedirect", "orders.html");
+        window.location.href = "login.html";
+    }
+</script>
+
+<!-- NOTIFICATION POPUP TOAST -->
+<div class="notif-toast" id="notifToast">
+    <div class="toast-ico">🔔</div>
+    <div>
+        <div class="toast-title">Canteen Update</div>
+        <div class="toast-msg" id="toastMsg"></div>
+    </div>
+    <button class="toast-close" onclick="dismissToast()">✕</button>
+</div>
+
+<header>
+    <div class="logo">
+        <div class="logo-icon">🍽</div>
+        <h1>Campus <span>Canteen</span></h1>
+    </div>
+    <div class="header-actions">
+        <button class="hdr-btn" onclick="window.location.href='choose.html'">← Order Again</button>
+
+        <!-- BELL -->
+        <div class="bell-wrap">
+            <button class="bell-btn" id="bellBtn" onclick="toggleNotifPanel()">
+                🔔
+                <div class="bell-badge" id="bellBadge"></div>
+            </button>
+            <div class="notif-panel" id="notifPanel">
+                <div class="notif-panel-hdr">
+                    <div class="notif-panel-title">Notifications <span class="live-dot"></span></div>
+                    <button class="notif-mark-btn" onclick="markAllRead()">Mark all read</button>
+                </div>
+                <div class="notif-scroll" id="notifList"></div>
+                <div class="notif-footer-link"><a href="#">— live updates —</a></div>
+            </div>
+        </div>
+
+        <button class="hdr-btn logout" onclick="logout()">Log out</button>
+    </div>
+</header>
+
+<div class="page-hero">
+    <div class="page-eyebrow">History</div>
+    <div class="page-title">My Orders</div>
+</div>
+
+<div class="section-label"><span>Recent</span></div>
+<div class="orders-list" id="ordersList"></div>
+
+<script>
+// ════════════════════════════════
+//  NOTIFICATION SYSTEM
+// ════════════════════════════════
+// selectedCanteen may be null if coming directly to orders page
+// fall back to canteen from most recent order
+let selectedCanteen = localStorage.getItem("selectedCanteen");
+if (!selectedCanteen) {
+    const allOrders = JSON.parse(localStorage.getItem("orders")) || [];
+    if (allOrders.length) selectedCanteen = allOrders[allOrders.length - 1].canteen;
+}
+
+let lastReadId     = parseInt(localStorage.getItem("notifLastReadId") || "0");
+let lastNotifCount = 0;
+let toastTimer     = null;
+let panelOpen      = false;
+
+function getNotifs() {
+    // Show ALL notifications from every canteen
+    return JSON.parse(localStorage.getItem("notifications")) || [];
+}
+
+function renderNotifPanel() {
+    const notifs = getNotifs();
+    const list   = document.getElementById("notifList");
+    if (!list) return;
+    if (!notifs.length) {
+        list.innerHTML = `<div class="notif-empty">🔕 No notifications yet</div>`;
+        return;
+    }
+    list.innerHTML = notifs.map(n => {
+        const msg    = n.msg.replace(/^\[(MRC|Khuksi)\]\s*/, "");
+        const icon   = n.msg.startsWith("[MRC]") ? "🏫" : n.msg.startsWith("[Khuksi]") ? "🍜" : "📢";
+        const unread = n.id > lastReadId;
+        return `<div class="notif-row ${unread ? 'unread' : 'read'}">
+            <div class="n-dot"></div>
+            <div class="n-ico">${icon}</div>
+            <div>
+                <div class="n-msg">${msg}</div>
+                <div class="n-time">${n.time || ''}</div>
+            </div>
+        </div>`;
+    }).join("");
+}
+
+function updateBell() {
+    const notifs = getNotifs();
+    const unread = notifs.filter(n => n.id > lastReadId).length;
+    const badge  = document.getElementById("bellBadge");
+    const btn    = document.getElementById("bellBtn");
+    if (!badge || !btn) return;
+
+    badge.textContent = unread > 9 ? "9+" : String(unread);
+    badge.classList.toggle("show", unread > 0);
+
+    // New notification arrived
+    if (unread > lastNotifCount && unread > 0) {
+        // Ring bell
+        btn.classList.remove("ring");
+        void btn.offsetWidth;
+        btn.classList.add("ring");
+
+        // Show popup toast for newest unread
+        const newest = notifs.find(n => n.id > lastReadId);
+        if (newest) showToast(newest.msg);
+    }
+    lastNotifCount = unread;
+
+    if (panelOpen) renderNotifPanel();
+}
+
+function showToast(msg) {
+    const clean = msg.replace(/^\[(MRC|Khuksi)\]\s*/, "");
+    document.getElementById("toastMsg").textContent = clean;
+    document.getElementById("notifToast").classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(dismissToast, 6000);
+}
+
+function dismissToast() {
+    document.getElementById("notifToast").classList.remove("show");
+    clearTimeout(toastTimer);
+}
+
+function toggleNotifPanel() {
+    panelOpen = !panelOpen;
+    document.getElementById("notifPanel").classList.toggle("open", panelOpen);
+    if (panelOpen) { markAllRead(); renderNotifPanel(); }
+}
+
+function markAllRead() {
+    const notifs = getNotifs();
+    if (notifs.length) {
+        lastReadId = Math.max(...notifs.map(n => n.id || 0));
+        localStorage.setItem("notifLastReadId", lastReadId);
+    }
+    lastNotifCount = 0;
+    updateBell();
+}
+
+// Close panel when clicking outside
+document.addEventListener("click", function(e) {
+    const wrap = document.querySelector(".bell-wrap");
+    if (wrap && !wrap.contains(e.target)) {
+        panelOpen = false;
+        document.getElementById("notifPanel")?.classList.remove("open");
+    }
+});
+
+// ════════════════════════════════
+//  ORDERS — auto-refresh every 2s
+// ════════════════════════════════
+    function getReviewBtn(statusTxt, order) {
+        if (statusTxt !== "Picked Up") return "";
+        if (order.reviewGiven) {
+            return "<span class='review-badge'>⭐" + (order.reviewStars || "") + " Reviewed</span>";
+        }
+        return "<button class='leave-review' data-oid='" + order.orderID + "' onclick='handleReviewBtn(this)'>✍️ Leave Review</button>";
+    }
+
+    function handleReviewBtn(btn) {
+        openReview(btn.getAttribute("data-oid"));
+    }
+
+function renderOrders() {
+    const list   = document.getElementById("ordersList");
+    const orders = JSON.parse(localStorage.getItem("orders")) || [];
+
+    if (!orders.length) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">🍴</span>
+                <h3>No orders yet</h3>
+                <p>Looks like you haven't ordered anything yet.</p>
+                <a class="order-now-btn" href="choose.html">Order Now →</a>
+            </div>`;
+        return;
+    }
+
+    list.innerHTML = [...orders].reverse().map((order, i) => {
+        const itemsHTML = order.items.map(item => `
+            <div class="item-row">
+                <div class="item-name">${item.name} <span class="item-qty">× ${item.quantity}</span></div>
+                <div class="item-price">₹${item.price * item.quantity}</div>
+            </div>`).join('');
+
+        const rawStatus = order.orderStatus || 'Preparing';
+        // Normalise: treat old "Completed" records as "Picked Up"
+        const statusTxt = (rawStatus === 'Completed') ? 'Picked Up' : rawStatus;
+        const status    = statusTxt.toLowerCase().replace(' ', '-');
+        const statusCls = status === 'ready' ? 'ready' : status === 'picked-up' ? 'picked-up' : 'preparing';
+        const nowServing  = parseInt(localStorage.getItem(`serving_${order.canteen}`) || "1");
+        const ordersAhead = Math.max(0, order.tokenNumber - nowServing);
+
+        return `<div class="order-card" style="animation:none">
+            <div class="card-top">
+                <div>
+                    <div class="order-id">${order.orderID || 'Order'}</div>
+                    <div class="token-badge"><span class="token-label">Token</span> ${order.tokenNumber}</div>
+                    <div class="order-meta-row">
+                        <span class="meta-chip">🏫 ${order.canteen}</span>
+                        <span class="meta-chip">⏱ ${order.slot}</span>
+                    </div>
+                </div>
+                <div class="card-right">
+                    <div class="order-date">${order.date}</div>
+                    <div class="status-badge ${statusCls}">${statusTxt}</div>
+                </div>
+            </div>
+            <div class="card-items">${itemsHTML}</div>
+            <div class="token-board">
+                <div class="token-cell">
+                    <div class="token-cell-label">Now Serving</div>
+                    <div class="token-cell-value">${nowServing}</div>
+                </div>
+                <div class="token-cell mine">
+                    <div class="token-cell-label">Your Token</div>
+                    <div class="token-cell-value">${order.tokenNumber}</div>
+                </div>
+                <div class="token-cell ahead">
+                    <div class="token-cell-label">Orders Ahead</div>
+                    <div class="token-cell-value">${ordersAhead}</div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="payment-method">💳 ${order.paymentMethod || 'Cash'}</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                    ${getReviewBtn(statusTxt, order)}
+                    <div class="total-amount"><sup>₹</sup>${order.total}</div>
+                </div>
+            </div>
+        </div>`;
+    }).join("");
+}
+
+// Kick off both loops
+renderOrders();
+updateBell();
+setInterval(renderOrders, 2000);
+setInterval(updateBell,   2000);
+
+// ══ PER-ITEM REVIEW SYSTEM ════════════════════════════════════
+var reviewingOrderId  = null;
+var reviewItemQueue   = [];   // items left to review
+var reviewItemIndex   = 0;    // current item index
+var reviewItemRatings = {};   // { itemName: { stars, comment } }
+
+function openReview(orderId) {
+    var orders = JSON.parse(localStorage.getItem("orders")) || [];
+    var order  = orders.find(o => o.orderID === orderId);
+    if (!order) return;
+
+    reviewingOrderId  = orderId;
+    reviewItemQueue   = (order.items || []).slice();
+    reviewItemIndex   = 0;
+    reviewItemRatings = {};
+
+    showItemReview(0);
+    document.getElementById("reviewModal").classList.add("show");
+}
+
+function showItemReview(idx) {
+    var item  = reviewItemQueue[idx];
+    if (!item) return;
+
+    var total = reviewItemQueue.length;
+
+    // Progress indicator
+    var prog = document.getElementById("reviewProgress");
+    if (prog) {
+        prog.textContent = total > 1 ? "Item " + (idx + 1) + " of " + total : "";
+    }
+
+    // Emoji + title
+    var emojiEl = document.getElementById("reviewEmoji");
+    if (emojiEl) emojiEl.textContent = item.emoji || "🍽";
+
+    // Item name
+    var titleEl = document.getElementById("reviewItemName");
+    if (titleEl) {
+        titleEl.textContent = item.name;
+        titleEl.style.display = "block";
+    }
+
+    // Sub text
+    var subEl = document.getElementById("reviewSub");
+    if (subEl) subEl.textContent = "How was the " + item.name + "?";
+
+    // Reset stars
+    var selectedStars = 0;
+    window._currentItemStars = 0;
+    document.querySelectorAll(".star").forEach(s => {
+        s.classList.remove("active");
+        s.style.filter = "grayscale(1) opacity(0.4)";
+        s.style.transform = "";
+    });
+    document.getElementById("reviewText").value = "";
+
+    // Update button label
+    var submitBtn = document.getElementById("reviewSubmitBtn");
+    if (submitBtn) {
+        var isLast = idx === total - 1;
+        submitBtn.textContent = isLast ? "Submit Reviews ✓" : "Next Item →";
+    }
+}
+
+function closeReviewModal() {
+    document.getElementById("reviewModal").classList.remove("show");
+    reviewingOrderId = null;
+    reviewItemQueue  = [];
+    reviewItemIndex  = 0;
+    reviewItemRatings = {};
+    window._currentItemStars = 0;
+}
+
+function skipReview() {
+    if (!reviewingOrderId) { closeReviewModal(); return; }
+    var orders = JSON.parse(localStorage.getItem("orders")) || [];
+    var idx    = orders.findIndex(o => o.orderID === reviewingOrderId);
+    if (idx !== -1) { orders[idx].reviewGiven = true; orders[idx].reviewSkipped = true; }
+    localStorage.setItem("orders", JSON.stringify(orders));
+    closeReviewModal();
+}
+
+function submitReview() {
+    var stars = window._currentItemStars || 0;
+    if (stars === 0) {
+        document.getElementById("starRow").style.animation = "shake 0.3s ease";
+        setTimeout(() => document.getElementById("starRow").style.animation = "", 400);
+        return;
+    }
+
+    var comment = document.getElementById("reviewText").value.trim();
+    var item    = reviewItemQueue[reviewItemIndex];
+
+    // Save this item's rating
+    reviewItemRatings[item.name] = { stars: stars, comment: comment };
+
+    var isLast = reviewItemIndex === reviewItemQueue.length - 1;
+
+    if (isLast) {
+        // All items rated — save everything
+        _saveAllItemReviews();
+    } else {
+        // Move to next item
+        reviewItemIndex++;
+        showItemReview(reviewItemIndex);
+    }
+}
+
+function _saveAllItemReviews() {
+    var orders   = JSON.parse(localStorage.getItem("orders")) || [];
+    var orderIdx = orders.findIndex(o => o.orderID === reviewingOrderId);
+    var order    = orders[orderIdx];
+    if (!order) { closeReviewModal(); return; }
+
+    // Mark whole order as reviewed
+    orders[orderIdx].reviewGiven     = true;
+    orders[orderIdx].reviewDate      = new Date().toLocaleString();
+    orders[orderIdx].itemReviews     = reviewItemRatings;
+    // Store overall avg for backwards compat
+    var starsArr = Object.values(reviewItemRatings).map(r => r.stars);
+    orders[orderIdx].reviewStars = Math.round(starsArr.reduce((a, b) => a + b, 0) / starsArr.length);
+    localStorage.setItem("orders", JSON.stringify(orders));
+
+    // Save ONE review entry PER ITEM to canteenReviews
+    var reviews  = JSON.parse(localStorage.getItem("canteenReviews")) || [];
+    var customer = localStorage.getItem("userName") || "Student";
+    var canteen  = order.canteen || localStorage.getItem("selectedCanteen") || "";
+    var date     = new Date().toLocaleString();
+
+    Object.entries(reviewItemRatings).forEach(function([itemName, rating]) {
+        reviews.unshift({
+            orderID:   reviewingOrderId,
+            canteen:   canteen,
+            itemName:  itemName,           // ← per-item
+            stars:     rating.stars,
+            comment:   rating.comment,
+            date:      date,
+            customer:  customer,
+            items:     itemName            // single item per review entry
+        });
+    });
+
+    localStorage.setItem("canteenReviews", JSON.stringify(reviews.slice(0, 200)));
+
+    closeReviewModal();
+
+    // Toast using average
+    var avg = orders[orderIdx].reviewStars;
+    showReviewToast(avg);
+}
+
+function showReviewToast(stars) {
+    var msgs = {
+        5: "🌟 Amazing! Thank you for the love!",
+        4: "😊 Thanks for the great feedback!",
+        3: "🙂 Thanks! We'll keep improving.",
+        2: "😕 Sorry to hear that. We'll do better!",
+        1: "😔 We're sorry. Your feedback matters."
+    };
+    var toast = document.getElementById("toast");
+    document.getElementById("toastMsg").textContent = msgs[stars] || "Thanks for your review!";
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 3500);
+}
+
+// Star interaction
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".star").forEach(function(star) {
+        star.addEventListener("click", function() {
+            window._currentItemStars = parseInt(this.getAttribute("data-val"));
+            document.querySelectorAll(".star").forEach(function(s, i) {
+                s.classList.toggle("active", i < window._currentItemStars);
+            });
+        });
+        star.addEventListener("mouseover", function() {
+            var val = parseInt(this.getAttribute("data-val"));
+            document.querySelectorAll(".star").forEach(function(s, i) {
+                s.style.filter = i < val ? "grayscale(0) opacity(1)" : "grayscale(1) opacity(0.4)";
+                s.style.transform = i < val ? "scale(1.25)" : "";
+            });
+        });
+    });
+    document.getElementById("starRow").addEventListener("mouseleave", function() {
+        var cur = window._currentItemStars || 0;
+        document.querySelectorAll(".star").forEach(function(s, i) {
+            s.style.filter    = i < cur ? "grayscale(0) opacity(1)" : "grayscale(1) opacity(0.4)";
+            s.style.transform = i < cur ? "scale(1.2)" : "";
+        });
+    });
+});
+
+// Close modal on overlay click
+document.getElementById("reviewModal").addEventListener("click", function(e) {
+    if (e.target === this) closeReviewModal();
+});
+
+// Auto-trigger review popup when order just became Picked Up
+var notifiedOrders = new Set();
+function checkForPickedUp() {
+    var orders = JSON.parse(localStorage.getItem("orders")) || [];
+    orders.forEach(function(order) {
+        var isPickedUp = order.orderStatus === "Picked Up" || order.orderStatus === "Completed";
+        if (isPickedUp && !order.reviewGiven && !notifiedOrders.has(order.orderID)) {
+            notifiedOrders.add(order.orderID);
+            // Small delay so page render finishes first
+            setTimeout(function() { openReview(order.orderID); }, 800);
+        }
+    });
+}
+setInterval(checkForPickedUp, 3000);
+checkForPickedUp();
+
+function logout() {
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("selectedCanteen");
+    window.location.href = "login.html";
+}
+</script>
+
+<!-- ══ PER-ITEM REVIEW MODAL ══ -->
+<div class="modal-overlay" id="reviewModal">
+    <div class="review-modal">
+        <!-- Progress e.g. "Item 2 of 3" -->
+        <div id="reviewProgress" style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;min-height:16px"></div>
+
+        <div class="review-emoji" id="reviewEmoji">🍽</div>
+
+        <!-- Item name -->
+        <div id="reviewItemName" style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:900;margin:6px 0 4px;display:none"></div>
+
+        <div class="review-title" style="font-size:1rem;font-weight:700">Rate this item</div>
+        <div class="review-sub" id="reviewSub">How was your experience?</div>
+
+        <!-- Stars -->
+        <div class="star-row" id="starRow">
+            <span class="star" data-val="1">⭐</span>
+            <span class="star" data-val="2">⭐</span>
+            <span class="star" data-val="3">⭐</span>
+            <span class="star" data-val="4">⭐</span>
+            <span class="star" data-val="5">⭐</span>
+        </div>
+
+        <!-- Optional comment -->
+        <textarea class="review-textarea" id="reviewText" rows="2" placeholder="Any comments? (optional)"></textarea>
+
+        <div class="review-btns">
+            <button class="review-skip"   onclick="skipReview()">Skip All</button>
+            <button class="review-submit" id="reviewSubmitBtn" onclick="submitReview()">Next Item →</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

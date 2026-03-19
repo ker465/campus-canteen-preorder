@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule · Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        .schedule-grid { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+        .session-cards { display: flex; flex-direction: column; gap: 16px; }
+
+        /* ── SESSION CARD ── */
+        .session-card {
+            background: var(--white); border-radius: var(--radius);
+            box-shadow: var(--shadow); overflow: hidden;
+            transition: box-shadow var(--transition), background var(--transition);
+            animation: fadeUp 0.35s ease both;
+        }
+        .session-card:nth-child(2) { animation-delay:.08s; }
+        .session-card:nth-child(3) { animation-delay:.16s; }
+        .session-card:nth-child(4) { animation-delay:.24s; }
+
+        .session-card-top {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border);
+            transition: border-color var(--transition);
+        }
+        .session-left { display: flex; align-items: center; gap: 14px; }
+        .session-emoji-box {
+            width: 46px; height: 46px; border-radius: 13px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            transition: transform 0.3s;
+        }
+        .session-card:hover .session-emoji-box { transform: rotate(-8deg) scale(1.1); }
+        .session-name  { font-size: 1rem; font-weight: 800; }
+        .session-range { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+        /* toggle switch */
+        .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+        .toggle-label { font-size: 0.75rem; font-weight: 700; color: var(--muted); }
+        .toggle-switch {
+            position: relative; width: 44px; height: 24px;
+            cursor: pointer; flex-shrink: 0;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute; inset: 0;
+            background: var(--border); border-radius: 24px;
+            transition: background 0.25s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute; left: 3px; top: 3px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: white;
+            transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .toggle-slider { background: var(--pink); }
+        input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+        /* time inputs */
+        .session-card-body { padding: 18px 22px; display: flex; gap: 16px; }
+        .time-field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+        .time-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+        .time-input {
+            background: var(--bg); border: 1.5px solid var(--border);
+            color: var(--text); font-family: Nunito, sans-serif;
+            font-size: 1rem; font-weight: 700;
+            padding: 10px 13px; border-radius: 11px; outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            width: 100%;
+        }
+        .time-input:focus {
+            border-color: var(--pink);
+            box-shadow: 0 0 0 3px var(--pink-glow);
+            background: var(--white);
+        }
+
+        /* ── RIGHT PANEL ── */
+        .right-panel { display: flex; flex-direction: column; gap: 16px; }
+
+        /* Override card */
+        .override-card {
+            background: var(--white); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 22px;
+            transition: background var(--transition);
+        }
+        .override-card h3 { font-size: 0.9rem; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .override-btns { display: flex; flex-direction: column; gap: 10px; }
+
+        .override-btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            font-family: Nunito, sans-serif; font-size: 0.92rem; font-weight: 800;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            gap: 8px; transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .override-btn:hover { transform: translateY(-2px); }
+        .override-btn:active { transform: scale(0.97); }
+        .btn-force-open  { background: linear-gradient(135deg,#5ddcbc,#30c39e); color: white; box-shadow: 0 4px 14px rgba(48,195,158,0.3); }
+        .btn-force-close { background: linear-gradient(135deg,#f87171,#ef4444); color: white; box-shadow: 0 4px 14px rgba(239,68,68,0.3); }
+        .btn-auto        { background: var(--light); color: var(--text); border: 1.5px solid var(--border); box-shadow: none; }
+        .btn-force-open:hover  { box-shadow: 0 6px 20px rgba(48,195,158,0.45); }
+        .btn-force-close:hover { box-shadow: 0 6px 20px rgba(239,68,68,0.45); }
+
+        .override-status {
+            margin-top: 14px; padding: 10px 14px; border-radius: 10px;
+            font-size: 0.8rem; font-weight: 700; text-align: center;
+        }
+        .status-auto   { background: var(--blue-bg);  color: var(--blue); }
+        .status-open   { background: var(--green-bg); color: var(--green); }
+        .status-closed { background: rgba(239,68,68,0.1); color: #ef4444; }
+
+        /* Live preview */
+        .preview-card {
+            background: var(--white); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 22px;
+            transition: background var(--transition);
+        }
+        .preview-card h3 { font-size: 0.9rem; font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .preview-session {
+            padding: 14px; border-radius: 12px; text-align: center;
+            margin-bottom: 10px;
+        }
+        .preview-session.open   { background: var(--green-bg); }
+        .preview-session.closed { background: var(--light); }
+        .preview-name  { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+        .preview-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.72rem; font-weight: 700;
+            padding: 3px 10px; border-radius: 20px;
+        }
+        .preview-badge.open   { background: rgba(48,195,158,0.15); color: var(--green); }
+        .preview-badge.closed { background: var(--border); color: var(--muted); }
+
+        .timeline {
+            display: flex; flex-direction: column; gap: 6px; margin-top: 10px;
+        }
+        .timeline-row {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.78rem;
+        }
+        .tl-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+        .tl-dot.active { background: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+        .tl-dot.past   { background: var(--muted); }
+        .tl-dot.future { background: var(--border); }
+        .tl-name   { font-weight: 700; flex: 1; }
+        .tl-time   { color: var(--muted); }
+
+        @media(max-width:900px) { .schedule-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<script>(function(){ if(localStorage.getItem("adminTheme")==="dark") document.body.classList.add("dark"); })()</script>
+<script src="admin.js"></script>
+<script>if(!localStorage.getItem("adminCanteen")) window.location.href="admin-login.html";</script>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-circle" id="sidebarIcon">🍽</div>
+        <div>
+            <div class="logo-name" id="sidebarName">Canteen</div>
+            <div class="logo-sub">Admin Panel</div>
+        </div>
+    </div>
+    <div class="nav-section">Main</div>
+    <a class="nav-link" href="admin-dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a class="nav-link" href="admin-orders.html"><span class="nav-icon">🧾</span> Orders</a>
+    <a class="nav-link" href="admin-menu.html"><span class="nav-icon">🍽</span> Menu</a>
+    <a class="nav-link active" href="admin-schedule.html"><span class="nav-icon">🕐</span> Schedule</a>
+    <div class="nav-section">Reports</div>
+    <a class="nav-link" href="admin-customers.html"><span class="nav-icon">👥</span> Customers</a>
+    <a class="nav-link" href="admin-reviews.html"><span class="nav-icon">⭐</span> Reviews</a>
+    <div class="sidebar-footer">
+        <button class="logout-nav" onclick="adminLogout()"><span>🚪</span> Log out</button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Schedule</h1>
+            <p>Control canteen hours and open/close anytime</p>
+        </div>
+        <div class="topbar-right">
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon-sun">☀️</span>
+                <span class="icon-moon">🌙</span>
+            </button>
+            <span id="canteenBadge" style="font-size:0.75rem;font-weight:700;padding:5px 14px;border-radius:20px;background:var(--pink-light);color:var(--pink2)"></span>
+<div class="admin-bell-wrap" id="adminBellWrap">
+                <button class="admin-bell-btn" id="adminBellBtn" title="New Orders">
+                    🔔
+                    <div class="admin-bell-badge" id="adminBellBadge">0</div>
+                </button>
+                <div class="admin-bell-dropdown" id="adminBellDropdown">
+                    <div class="bell-drop-header">
+                        <div class="bell-drop-title">🛒 Incoming Orders <span id="bellUnreadCount" style="font-size:0.72rem;color:var(--muted);font-weight:600"></span></div>
+                        <button class="bell-clear-btn" onclick="clearBellOrders()">Mark all read</button>
+                    </div>
+                    <div class="bell-drop-list" id="bellDropList"></div>
+                    <div class="bell-drop-footer"><a href="admin-orders.html">View all orders →</a></div>
+                </div>
+            </div>
+            <div class="admin-pill">
+                <div class="admin-avatar">A</div>
+                <div>
+                    <div class="admin-name" id="adminNameLabel">Admin</div>
+                    <div class="admin-role">Manager</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <div class="schedule-grid">
+
+            <!-- LEFT: session cards -->
+            <div class="session-cards" id="sessionCards"></div>
+
+            <!-- RIGHT: override + preview -->
+            <div class="right-panel">
+
+                <!-- Manual Override -->
+                <div class="override-card">
+                    <h3>⚡ Manual Override</h3>
+                    <div class="override-btns">
+                        <button class="override-btn btn-force-open" onclick="setOverride('open')">
+                            ✅ Force Open Now
+                        </button>
+                        <button class="override-btn btn-force-close" onclick="setOverride('closed')">
+                            🔴 Force Close Now
+                        </button>
+                        <button class="override-btn btn-auto" onclick="setOverride(null)">
+                            🔄 Back to Auto Schedule
+                        </button>
+                    </div>
+                    <div class="override-status" id="overrideStatus"></div>
+                </div>
+
+                <!-- Live Preview -->
+                <div class="preview-card">
+                    <h3>📍 Current Status</h3>
+                    <div id="livePreview"></div>
+                    <div class="timeline" id="timeline"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="adminToast">
+    <span id="toastIcon">✅</span>
+    <span id="toastMsg"></span>
+</div>
+
+<script>
+const adminCanteen = localStorage.getItem("adminCanteen") || "MRC";
+const EMOJIS = { breakfast:"🌅", lunch:"🍱", snacks:"🍿", dinner:"🌙" };
+const COLORS = { breakfast:"#f5a623", lunch:"#4caf80", snacks:"#5b8dee", dinner:"#9b59b6" };
+const LABELS = { breakfast:"Breakfast", lunch:"Lunch", snacks:"Snacks", dinner:"Dinner" };
+
+// Branding
+(function(){
+    const map = { MRC:{name:"MRC Canteen",icon:"🏫"}, Khuksi:{name:"Khuksi Corner",icon:"🍜"} };
+    const L = map[adminCanteen] || {name:adminCanteen,icon:"🍽"};
+    const b = document.getElementById("canteenBadge");
+    if(b) b.textContent = L.icon+" "+L.name;
+    const sn = document.getElementById("sidebarName");
+    if(sn) sn.textContent = L.name;
+    const si = document.getElementById("sidebarIcon");
+    if(si) si.textContent = L.icon;
+    const an = document.getElementById("adminNameLabel");
+    if(an) an.textContent = adminCanteen+" Admin";
+})();
+
+// ── Load / save schedule ──────────────────────
+function loadSchedule() {
+    const saved = localStorage.getItem("canteenSchedule");
+    if (saved) { try { return JSON.parse(saved); } catch(e){} }
+    return {
+        breakfast: { start:8,  startMin:0, end:11, endMin:0, label:"Breakfast", emoji:"🌅", enabled:true },
+        lunch:     { start:12, startMin:0, end:15, endMin:0, label:"Lunch",     emoji:"🍱", enabled:true },
+        snacks:    { start:16, startMin:0, end:19, endMin:0, label:"Snacks",    emoji:"🍿", enabled:true },
+        dinner:    { start:19, startMin:0, end:24, endMin:0, label:"Dinner",    emoji:"🌙", enabled:true }
+    };
+}
+
+function saveSchedule(sched) {
+    localStorage.setItem("canteenSchedule", JSON.stringify(sched));
+}
+
+// ── Render session cards ──────────────────────
+function renderCards() {
+    const sched = loadSchedule();
+    const wrap  = document.getElementById("sessionCards");
+    wrap.innerHTML = "";
+
+    Object.entries(sched).forEach(function([key, s], idx) {
+        var color = COLORS[key] || "#f5a623";
+        var card  = document.createElement("div");
+        card.className = "session-card";
+        card.style.animationDelay = (idx * 0.08) + "s";
+        card.innerHTML =
+            "<div class='session-card-top'>" +
+                "<div class='session-left'>" +
+                    "<div class='session-emoji-box' style='background:" + color + "20;border:1.5px solid " + color + "44'>" +
+                        (s.emoji || EMOJIS[key]) +
+                    "</div>" +
+                    "<div>" +
+                        "<div class='session-name'>" + (s.label || LABELS[key]) + "</div>" +
+                        "<div class='session-range' id='range-" + key + "'>" + getRangeText(s) + "</div>" +
+                    "</div>" +
+                "</div>" +
+                "<div class='toggle-wrap'>" +
+                    "<span class='toggle-label'>" + (s.enabled ? "Enabled" : "Disabled") + "</span>" +
+                    "<label class='toggle-switch'>" +
+                        "<input type='checkbox' " + (s.enabled ? "checked" : "") + " onchange='toggleSession(\"" + key + "\",this.checked)'>" +
+                        "<span class='toggle-slider'></span>" +
+                    "</label>" +
+                "</div>" +
+            "</div>" +
+            "<div class='session-card-body'>" +
+                "<div class='time-field'>" +
+                    "<div class='time-label'>Start Time</div>" +
+                    "<input class='time-input' type='time' id='start-" + key + "'" +
+                        " value='" + toTimeStr(s.start, s.startMin) + "'" +
+                        " oninput='updateTime(\"" + key + "\")'" +
+                        (s.enabled ? "" : " disabled") + ">" +
+                "</div>" +
+                "<div class='time-field'>" +
+                    "<div class='time-label'>End Time</div>" +
+                    "<input class='time-input' type='time' id='end-" + key + "'" +
+                        " value='" + toTimeStr(s.end === 24 ? 23 : s.end, s.end === 24 ? 59 : (s.endMin || 0)) + "'" +
+                        " oninput='updateTime(\"" + key + "\")'" +
+                        (s.enabled ? "" : " disabled") + ">" +
+                "</div>" +
+            "</div>";
+        wrap.appendChild(card);
+    });
+}
+
+// ── Helpers ───────────────────────────────────
+function toTimeStr(h, m) {
+    return String(h).padStart(2,"0") + ":" + String(m || 0).padStart(2,"0");
+}
+function getRangeText(s) {
+    return fmt12(s.start, s.startMin) + " – " + fmt12(s.end === 24 ? 23 : s.end, s.end === 24 ? 59 : (s.endMin||0));
+}
+function fmt12(h, m) {
+    m = m || 0;
+    var p = h < 12 ? "AM" : "PM";
+    var d = h > 12 ? h-12 : (h===0 ? 12 : h);
+    return d + ":" + String(m).padStart(2,"0") + " " + p;
+}
+
+// ── Actions ───────────────────────────────────
+function toggleSession(key, enabled) {
+    var sched = loadSchedule();
+    sched[key].enabled = enabled;
+    saveSchedule(sched);
+    showToast(sched[key].label + (enabled ? " enabled ✓" : " disabled"));
+    renderCards();
+    renderPreview();
+}
+
+function updateTime(key) {
+    var startVal = document.getElementById("start-" + key).value;
+    var endVal   = document.getElementById("end-"   + key).value;
+    if (!startVal || !endVal) return;
+
+    var sp = startVal.split(":").map(Number);
+    var ep = endVal.split(":").map(Number);
+
+    var sched = loadSchedule();
+    sched[key].start    = sp[0];
+    sched[key].startMin = sp[1];
+    sched[key].end      = ep[0] === 23 && ep[1] === 59 ? 24 : ep[0];
+    sched[key].endMin   = ep[0] === 23 && ep[1] === 59 ? 0  : ep[1];
+    saveSchedule(sched);
+
+    var rangeEl = document.getElementById("range-" + key);
+    if (rangeEl) rangeEl.textContent = getRangeText(sched[key]);
+
+    showToast(sched[key].label + " time updated ✓");
+    renderPreview();
+}
+
+function setOverride(val) {
+    var key = "canteenOverride_" + adminCanteen;
+    if (val === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, val);
+    renderPreview();
+    var msgs = { open:"✅ Canteen forced OPEN", closed:"🔴 Canteen forced CLOSED", null:"🔄 Back to auto schedule" };
+    showToast(msgs[val] || "🔄 Auto schedule restored");
+}
+
+// ── Live preview ──────────────────────────────
+function renderPreview() {
+    var override = localStorage.getItem("canteenOverride_" + adminCanteen);
+    var statusEl = document.getElementById("overrideStatus");
+    if (statusEl) {
+        if (override === "open") {
+            statusEl.className = "override-status status-open";
+            statusEl.textContent = "🟢 Override: Forced OPEN";
+        } else if (override === "closed") {
+            statusEl.className = "override-status status-closed";
+            statusEl.textContent = "🔴 Override: Forced CLOSED";
+        } else {
+            statusEl.className = "override-status status-auto";
+            statusEl.textContent = "🔵 Auto — following schedule";
+        }
+    }
+
+    var now     = new Date();
+    var cur     = now.getHours() + now.getMinutes() / 60;
+    var sched   = loadSchedule();
+    var prevEl  = document.getElementById("livePreview");
+    var tlEl    = document.getElementById("timeline");
+    if (!prevEl || !tlEl) return;
+
+    // Find current session
+    var curSession = null;
+    if (override === "closed") {
+        curSession = null;
+    } else if (override === "open") {
+        curSession = "manual";
+    } else {
+        Object.entries(sched).forEach(function([k, s]) {
+            if (!s.enabled) return;
+            var sh = s.start + (s.startMin||0)/60;
+            var eh = s.end   + (s.endMin||0)/60;
+            if (cur >= sh && cur < eh) curSession = k;
+        });
+    }
+
+    // Status box
+    if (curSession) {
+        var s = sched[curSession] || {};
+        prevEl.innerHTML =
+            "<div class='preview-session open'>" +
+                "<div class='preview-name'>" +
+                    (override === "open" ? "🟢 Manually Opened" : (s.emoji||"🍽") + " " + (s.label || curSession)) +
+                "</div>" +
+                "<span class='preview-badge open'>● Open Now</span>" +
+            "</div>";
+    } else {
+        prevEl.innerHTML =
+            "<div class='preview-session closed'>" +
+                "<div class='preview-name'>⛔ Canteen Closed</div>" +
+                "<span class='preview-badge closed'>● Closed</span>" +
+            "</div>";
+    }
+
+    // Timeline
+    var html = "";
+    Object.entries(sched).forEach(function([k, s]) {
+        var sh  = s.start + (s.startMin||0)/60;
+        var eh  = s.end   + (s.endMin||0)/60;
+        var dot = cur >= sh && cur < eh ? "active" : cur > eh ? "past" : "future";
+        var dis = !s.enabled ? " (disabled)" : "";
+        html += "<div class='timeline-row'>" +
+            "<div class='tl-dot " + dot + "'></div>" +
+            "<div class='tl-name'>" + (s.emoji||EMOJIS[k]) + " " + (s.label||LABELS[k]) + dis + "</div>" +
+            "<div class='tl-time'>" + getRangeText(s) + "</div>" +
+        "</div>";
+    });
+    tlEl.innerHTML = html;
+}
+
+// ── Init ──────────────────────────────────────
+renderCards();
+renderPreview();
+setInterval(renderPreview, 10000); // refresh preview every 10s
+</script>
+
+<script>
+function toggleTheme() {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("adminTheme", document.body.classList.contains("dark") ? "dark" : "light");
+}
+</script>
+<script>
+
+    // ══ ADMIN ORDER BELL ════════════════════════════════════════
+    var bellOpen      = false;
+    var bellReadIds   = JSON.parse(localStorage.getItem("adminBellReadIds") || "[]");
+    var bellLastCount = 0;
+
+    function getBellOrders() {
+        return getMyOrders().slice().reverse().slice(0, 30);
+    }
+
+
+    let _bellDropHash = "";
+    function renderBellDrop() {
+        var orders  = getBellOrders();
+        var listEl  = document.getElementById("bellDropList");
+        if (!listEl) return;
+
+        // Hash guard — skip if nothing changed
+        var hash = orders.map(function(o){ return o.orderID + o.orderStatus + (bellReadIds.indexOf(o.orderID)===-1?"u":"r"); }).join(",");
+        if (hash === _bellDropHash) return;
+        _bellDropHash = hash;
+
+        if (!orders.length) {
+            listEl.innerHTML = "<div class='bell-empty'><div class='bell-empty-icon'>🛒</div><div style='font-size:0.82rem'>No orders yet</div></div>";
+            return;
+        }
+        listEl.innerHTML = orders.map(function(o, i) {
+            var isUnread = bellReadIds.indexOf(o.orderID) === -1;
+            var items    = (o.items||[]).map(function(it){ return it.name + " x" + it.quantity; }).join(", ") || "—";
+            var status   = o.orderStatus || "Pending";
+            var sColor   = status==="Ready" ? "var(--green)" : status==="Picked Up" ? "var(--muted)" : "var(--amber)";
+            return "<div class='bell-order-item" + (isUnread ? " unread" : "") + "' style='animation-delay:" + (i*0.04) + "s' onclick='goToOrders()'>" +
+                "<div class='bell-order-icon'>🛒</div>" +
+                "<div class='bell-order-body'>" +
+                    "<div class='bell-order-title'>New Order <span class='bell-token-tag'>Token #" + o.tokenNumber + "</span></div>" +
+                    "<div class='bell-order-sub'>" + items + "</div>" +
+                    "<div style='display:flex;justify-content:space-between;margin-top:3px'>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:" + sColor + "'>" + status + "</span>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:var(--pink)'>&#8377;" + o.total + "</span>" +
+                    "</div>" +
+                    "<div class='bell-order-time'>" + (o.date||"") + "</div>" +
+                "</div>" +
+            "</div>";
+        }).join("");
+    }
+
+    function goToOrders() { window.location.href = 'admin-orders.html'; }
+
+    function updateAdminBell() {
+        var orders  = getBellOrders();
+        var unread  = orders.filter(function(o){ return bellReadIds.indexOf(o.orderID)===-1; }).length;
+        var badge   = document.getElementById("adminBellBadge");
+        var btn     = document.getElementById("adminBellBtn");
+        var countEl = document.getElementById("bellUnreadCount");
+        if (badge)   { badge.textContent = unread>9?"9+":String(unread); badge.classList.toggle("show",unread>0); }
+        if (countEl) { countEl.textContent = unread>0 ? "("+unread+" new)" : ""; }
+        if (btn && unread > bellLastCount && unread > 0) {
+            btn.classList.remove("ringing"); void btn.offsetWidth;
+            btn.classList.add("ringing");
+            setTimeout(function(){ btn.classList.remove("ringing"); }, 600);
+        }
+        bellLastCount = unread;
+        if (bellOpen) renderBellDrop();
+    }
+
+    function clearBellOrders() {
+        getBellOrders().forEach(function(o){ if(bellReadIds.indexOf(o.orderID)===-1) bellReadIds.push(o.orderID); });
+        localStorage.setItem("adminBellReadIds", JSON.stringify(bellReadIds));
+        _bellDropHash = ""; // force re-render
+        updateAdminBell(); renderBellDrop();
+    }
+
+    document.addEventListener("click", function(e) {
+        var wrap = document.getElementById("adminBellWrap");
+        var drop = document.getElementById("adminBellDropdown");
+        if (!drop) return;
+        if (wrap && wrap.contains(e.target)) {
+            bellOpen = !bellOpen;
+            drop.classList.toggle("open", bellOpen);
+            if (bellOpen) { renderBellDrop(); clearBellOrders(); }
+        } else { bellOpen=false; drop.classList.remove("open"); }
+    });
+
+    updateAdminBell();
+    setInterval(updateAdminBell, 2000);
+
+</script>
+</body>
+</html>

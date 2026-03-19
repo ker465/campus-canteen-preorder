@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Canteen</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+--bg:#0f0d0b;
+--card:#1a1612;
+--border:#2e2820;
+--amber:#f5a623;
+--text:#f0e8dc;
+--muted:#8a7d6b;
+}
+
+body{
+font-family:'DM Sans',sans-serif;
+background:var(--bg);
+color:var(--text);
+min-height:100vh;
+}
+
+header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:18px 40px;
+border-bottom:1px solid var(--border);
+}
+.logo{
+font-family:'Playfair Display',serif;
+font-size:22px;
+display:flex;
+gap:6px;
+align-items:center;
+}
+.logo span{ color:var(--amber); }
+.header-right{ display:flex; gap:12px; align-items:center; }
+.header-btn{
+background:none; border:1px solid #444; color:#fff;
+padding:6px 14px; border-radius:8px; cursor:pointer; font-size:13px;
+}
+.header-btn:hover{ border-color:var(--amber); }
+.logout-btn{
+background:var(--amber); border:none; color:#000;
+padding:6px 14px; border-radius:8px; font-weight:600; cursor:pointer;
+}
+
+.menu-card{
+background:var(--card); border:1px solid var(--border);
+border-radius:18px; padding:20px;
+display:flex; flex-direction:column; gap:16px; transition:.2s;
+}
+.menu-card:hover{ border-color:var(--amber); transform:translateY(-3px); }
+.card-top{ display:flex; gap:14px; align-items:center; }
+.item-emoji{ font-size:28px; }
+.card-bottom{ display:flex; justify-content:space-between; align-items:center; }
+
+.qty-control{ display:flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.qty-btn{ background:none; border:none; color:#fff; padding:6px 12px; cursor:pointer; }
+.qty-display{ width:30px; text-align:center; }
+
+.cart-panel{
+margin:0 40px 50px;
+background:var(--card); border:1px solid var(--border);
+border-radius:20px; padding:28px;
+}
+.cart-panel h3{ margin-bottom:10px; }
+.order-btn{
+margin-top:14px; padding:10px 16px;
+background:var(--amber); border:none; border-radius:10px;
+font-weight:bold; cursor:pointer;
+}
+select{ margin-top:10px; padding:6px; border-radius:6px; }
+
+.toast{
+position:fixed; bottom:30px; left:50%;
+transform:translateX(-50%) translateY(100px);
+background:#1e1a14; border:1px solid var(--amber);
+padding:12px 20px; border-radius:10px; transition:.4s; color:var(--text);
+}
+.toast.show{ transform:translateX(-50%) translateY(0); }
+
+.session-banner{
+margin:24px 40px 0; padding:14px 20px; border-radius:14px;
+display:flex; align-items:center; justify-content:space-between;
+gap:12px; border:1px solid; animation:fadeUp 0.4s ease both;
+}
+@keyframes fadeUp{ from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.session-banner.open { background:rgba(76,175,128,0.08); border-color:rgba(76,175,128,0.25); }
+.session-banner.closed{ background:rgba(239,83,80,0.08);  border-color:rgba(239,83,80,0.25); }
+.session-left{ display:flex; align-items:center; gap:12px; }
+.session-emoji{ font-size:1.6rem; }
+.session-name{ font-size:0.95rem; font-weight:700; margin-bottom:2px; }
+.session-sub{ font-size:0.78rem; color:var(--muted); }
+.session-right{ text-align:right; }
+.session-time{ font-size:0.8rem; font-weight:700; }
+.session-badge{
+display:inline-block; padding:3px 12px; border-radius:20px;
+font-size:0.68rem; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; margin-top:4px;
+}
+.badge-open  { background:rgba(76,175,128,0.15); color:#4caf80; }
+.badge-closed{ background:rgba(239,83,80,0.15);  color:#ef5350; }
+
+.closed-overlay{
+margin:20px 40px; background:rgba(239,83,80,0.06);
+border:1px solid rgba(239,83,80,0.2); border-radius:18px;
+padding:48px 24px; text-align:center; display:none;
+}
+.closed-overlay.show{ display:block; animation:fadeUp 0.4s ease both; }
+.closed-icon { font-size:3rem; margin-bottom:14px; }
+.closed-title{ font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:900; margin-bottom:8px; }
+.closed-sub  { font-size:0.9rem; color:var(--muted); margin-bottom:20px; }
+.next-session-pill{
+display:inline-flex; align-items:center; gap:8px;
+background:rgba(245,166,35,0.1); border:1px solid rgba(245,166,35,0.25);
+color:var(--amber); padding:8px 18px; border-radius:20px;
+font-size:0.85rem; font-weight:700;
+}
+
+/* ══ SPECIAL WRAP ══════════════════════════════════════════ */
+.special-wrap{ padding:24px 40px 0; }
+
+.special-card{
+background:linear-gradient(135deg,#1a1612 0%,#221e14 60%,#1a1612 100%);
+border:1.5px solid rgba(245,166,35,0.4); border-radius:22px;
+padding:28px 32px; display:flex; align-items:center; gap:28px;
+position:relative; overflow:hidden; animation:fadeUp 0.5s ease both;
+transition:box-shadow 0.3s,transform 0.3s;
+}
+.special-card:hover{ box-shadow:0 12px 48px rgba(245,166,35,0.18); transform:translateY(-3px); }
+.special-card::before{
+content:''; position:absolute; inset:0;
+background:radial-gradient(ellipse at 70% 50%,rgba(245,166,35,0.08),transparent 65%);
+pointer-events:none;
+}
+.special-glow{
+position:absolute; top:-30px; right:-30px; width:180px; height:180px;
+background:radial-gradient(circle,rgba(245,166,35,0.12),transparent 70%);
+pointer-events:none; animation:glowPulse 3s ease-in-out infinite;
+}
+@keyframes glowPulse{ 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.15)} }
+.special-emoji-wrap{
+width:90px; height:90px; background:rgba(245,166,35,0.1);
+border:1.5px solid rgba(245,166,35,0.2); border-radius:22px;
+display:flex; align-items:center; justify-content:center;
+font-size:3rem; flex-shrink:0; animation:floatEmoji 3s ease-in-out infinite;
+}
+@keyframes floatEmoji{ 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-6px) rotate(-4deg)} }
+.special-body{ flex:1; position:relative; z-index:1; }
+.special-eyebrow{
+display:inline-flex; align-items:center; gap:6px;
+font-size:0.68rem; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
+color:var(--amber); margin-bottom:8px;
+}
+.fire-icon{ animation:fireFlicker 1.2s ease-in-out infinite alternate; }
+@keyframes fireFlicker{ from{transform:scale(1) rotate(-3deg)} to{transform:scale(1.15) rotate(3deg)} }
+.special-name{
+font-family:'Playfair Display',serif;
+font-size:1.6rem; font-weight:900; margin-bottom:6px; line-height:1.1;
+}
+.special-price{ font-size:1.3rem; font-weight:800; color:var(--amber); margin-bottom:10px; }
+.special-badges{ display:flex; gap:8px; flex-wrap:wrap; }
+.special-badge{ font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:20px; }
+.badge-fast{ background:rgba(76,175,128,0.12); color:#4caf80; border:1px solid rgba(76,175,128,0.25); }
+.badge-hot { background:rgba(239,83,80,0.12);  color:#ef5350; border:1px solid rgba(239,83,80,0.25); }
+.special-qty{ display:flex; flex-direction:column; align-items:center; gap:6px; position:relative; z-index:1; }
+.special-qty-label{ font-size:0.68rem; color:var(--muted); font-weight:600; }
+
+/* ══ CATEGORY SPECIAL HERO ══════════════════════════════════ */
+.cat-special-hero{
+background:linear-gradient(135deg,#1a1612 0%,#231f10 60%,#1a1612 100%);
+border:1.5px solid rgba(245,166,35,0.5); border-radius:22px;
+overflow:hidden; animation:fadeUp 0.5s ease both;
+box-shadow:0 0 0 1px rgba(245,166,35,0.08);
+transition:box-shadow 0.3s,transform 0.3s;
+}
+.cat-special-hero:hover{ box-shadow:0 12px 48px rgba(245,166,35,0.2); }
+
+.cat-special-top{
+display:flex; align-items:center; gap:20px;
+padding:24px 28px 18px; position:relative; overflow:hidden;
+}
+.cat-special-top::before{
+content:''; position:absolute; inset:0;
+background:radial-gradient(ellipse at 80% 50%,rgba(245,166,35,0.07),transparent 60%);
+pointer-events:none;
+}
+.cat-special-glow{
+position:absolute; top:-40px; right:-40px; width:220px; height:220px;
+background:radial-gradient(circle,rgba(245,166,35,0.1),transparent 70%);
+pointer-events:none; animation:glowPulse 3s ease-in-out infinite;
+}
+.cat-special-icon{
+width:60px; height:60px; border-radius:16px; flex-shrink:0;
+background:rgba(245,166,35,0.1); border:1.5px solid rgba(245,166,35,0.25);
+display:flex; align-items:center; justify-content:center;
+font-size:2rem; animation:floatEmoji 3s ease-in-out infinite;
+}
+.cat-special-info{ flex:1; position:relative; z-index:1; }
+.cat-special-eyebrow{
+display:inline-flex; align-items:center; gap:6px;
+font-size:0.65rem; font-weight:700; letter-spacing:0.15em; text-transform:uppercase;
+color:var(--amber); margin-bottom:5px;
+}
+.cat-special-title{
+font-family:'Playfair Display',serif;
+font-size:1.45rem; font-weight:900; line-height:1.15; margin-bottom:3px;
+}
+.cat-special-sub{ font-size:0.76rem; color:var(--muted); }
+
+.cat-special-divider{
+height:1px; background:rgba(245,166,35,0.12);
+margin:0 20px;
+}
+
+/* ── BIGGER ITEM BOXES ── */
+.cat-special-items{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+gap:14px;
+padding:18px 22px 22px;
+}
+.cat-special-item{
+background:rgba(255,255,255,0.03);
+border:1px solid var(--border); border-radius:16px;
+padding:16px 18px; display:flex; align-items:center; gap:14px;
+transition:border-color 0.2s, background 0.2s;
+min-height:76px;
+}
+.cat-special-item:hover{ border-color:rgba(245,166,35,0.3); background:rgba(245,166,35,0.04); }
+.cat-special-item.starred{
+border-color:rgba(245,166,35,0.45);
+background:rgba(245,166,35,0.06);
+}
+.cs-item-emoji{ font-size:2rem; flex-shrink:0; }
+.cs-item-body{ flex:1; min-width:0; }
+.cs-item-name{
+font-size:0.86rem; font-weight:600;
+white-space:normal; word-break:break-word; line-height:1.35;
+}
+.cs-item-price{ font-size:0.78rem; color:var(--amber); font-weight:700; margin-top:4px; }
+.cs-star-badge{
+display:inline-block;
+font-size:0.56rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase;
+color:var(--amber); background:rgba(245,166,35,0.12);
+border:1px solid rgba(245,166,35,0.3);
+padding:1px 6px; border-radius:8px; margin-left:5px; vertical-align:middle;
+}
+.cs-qty .qty-control{ border-color:rgba(245,166,35,0.22); border-radius:8px; }
+.cs-qty .qty-btn{ padding:6px 11px; font-size:0.9rem; }
+.cs-qty .qty-display{ width:28px; font-size:0.85rem; }
+
+.cat-special-footer{
+padding:10px 22px 16px;
+font-size:0.7rem; color:var(--muted);
+border-top:1px solid rgba(245,166,35,0.08);
+}
+
+/* ══ ACCORDION ═══════════════════════════════════════════════ */
+.acc-section{
+margin:0 40px 8px; background:var(--card); border:1px solid var(--border);
+border-radius:18px; overflow:hidden; animation:fadeUp 0.35s ease both; transition:border-color 0.2s;
+}
+.acc-section.active{ border-color:rgba(245,166,35,0.35); }
+.acc-header{
+display:flex; align-items:center; justify-content:space-between;
+padding:16px 22px; cursor:pointer; user-select:none; transition:background 0.2s;
+}
+.acc-header:hover{ background:rgba(245,166,35,0.04); }
+.acc-header-left{ display:flex; align-items:center; gap:12px; }
+.acc-cat-icon{
+width:38px; height:38px; border-radius:11px;
+display:flex; align-items:center; justify-content:center; font-size:1.3rem;
+background:rgba(245,166,35,0.08); border:1px solid rgba(245,166,35,0.15);
+flex-shrink:0; animation:floatEmoji 3s ease-in-out infinite;
+}
+.acc-section:nth-child(1) .acc-cat-icon{animation-delay:0s}
+.acc-section:nth-child(2) .acc-cat-icon{animation-delay:0.4s}
+.acc-section:nth-child(3) .acc-cat-icon{animation-delay:0.8s}
+.acc-section:nth-child(4) .acc-cat-icon{animation-delay:1.2s}
+.acc-section:nth-child(5) .acc-cat-icon{animation-delay:1.6s}
+.acc-section:nth-child(6) .acc-cat-icon{animation-delay:2.0s}
+.acc-cat-name{ font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:700; }
+.acc-count{ font-size:0.7rem; color:var(--muted); font-weight:600; margin-left:4px; }
+.acc-chevron{ font-size:0.75rem; color:var(--muted); transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+.acc-section.active .acc-chevron{ transform:rotate(180deg); }
+.acc-body{ max-height:0; overflow:hidden; transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1); }
+.acc-section.active .acc-body{ max-height:3000px; }
+.acc-grid{
+display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+gap:12px; padding:4px 18px 18px;
+}
+
+@media(max-width:600px){
+    header{ padding:14px 16px; }
+    .session-banner{ margin:16px 16px 0; }
+    .closed-overlay{ margin:20px 16px; }
+    .special-wrap{ padding:16px 16px 0; }
+    .acc-section{ margin:0 16px 8px; }
+    .acc-grid{ grid-template-columns:1fr; padding:4px 12px 12px; }
+    .cart-panel{ margin:0 16px 40px; }
+    .cat-special-items{ grid-template-columns:1fr; padding:12px 14px 14px; }
+    .cat-special-top{ padding:16px 16px 12px; gap:12px; }
+}
+
+@keyframes shimmerText{
+0%  { background-position:0% center }
+100%{ background-position:200% center }
+}
+</style>
+<script src="schedule.js"></script>
+</head>
+
+<body>
+
+<script>
+if(localStorage.getItem("isLoggedIn")!=="true"){ window.location.href="login.html"; }
+if(!localStorage.getItem("selectedCanteen")){ window.location.href="choose.html"; }
+const selectedCanteen=localStorage.getItem("selectedCanteen");
+const user=JSON.parse(localStorage.getItem("user"));
+(function seedMenu(){
+    const saved=JSON.parse(localStorage.getItem("menu_"+selectedCanteen));
+    const hasCategories=saved&&saved.length>0&&saved.some(i=>i.category);
+    if(!hasCategories&&selectedCanteen==="MRC"){
+        setTimeout(function(){ if(typeof AMITY_MENU!=="undefined") localStorage.setItem("menu_MRC",JSON.stringify(AMITY_MENU)); },50);
+    }
+})();
+</script>
+
+<header>
+    <div class="logo">🍽 Campus <span>Canteen</span> - <span id="canteenName"></span></div>
+    <div class="header-right">
+        <span id="userName" style="font-size:13px;color:#aaa;"></span>
+        <button class="header-btn" onclick="window.location.href='orders.html'">Orders</button>
+        <button class="header-btn" onclick="window.location.href='choose.html'">Change</button>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</header>
+
+<div class="session-banner" id="sessionBanner">
+    <div class="session-left">
+        <div class="session-emoji" id="sessionEmoji">🍽</div>
+        <div>
+            <div class="session-name" id="sessionName">Loading...</div>
+            <div class="session-sub"  id="sessionSub"></div>
+        </div>
+    </div>
+    <div class="session-right">
+        <div class="session-time"  id="sessionTime"></div>
+        <div class="session-badge" id="sessionBadge"></div>
+    </div>
+</div>
+
+<div class="closed-overlay" id="closedOverlay">
+    <div class="closed-icon">⛔</div>
+    <div class="closed-title">Canteen Closed</div>
+    <div class="closed-sub" id="closedSub">No active session right now.</div>
+    <div class="next-session-pill" id="nextSessionPill" style="display:none"><span id="nextSessionTxt"></span></div>
+</div>
+
+<div class="special-wrap" id="specialWrap"></div>
+<div id="menuAccordion" style="margin-top:20px"></div>
+<div id="menu" style="display:none"></div>
+
+<div class="cart-panel">
+    <h3>Your Cart</h3>
+    <div id="cart">Empty</div>
+    <h2>Total: ₹<span id="total">0</span></h2>
+    <select id="slot"></select>
+    <button class="order-btn" onclick="placeOrder()">Place Order</button>
+</div>
+<div class="toast" id="toast"><span id="toastMsg">Order placed! 🎉</span></div>
+
+<script>
+function applySession(){
+    const session=getCurrentSession();
+    const banner=document.getElementById("sessionBanner");
+    const overlay=document.getElementById("closedOverlay");
+    const cartPanel=document.querySelector(".cart-panel");
+    if(session==="closed"){
+        banner.style.display="none"; overlay.classList.add("show");
+        if(cartPanel){ cartPanel.style.opacity="0.4"; cartPanel.style.pointerEvents="none"; }
+        const next=getNextSession();
+        const pill=document.getElementById("nextSessionPill");
+        const sub=document.getElementById("closedSub");
+        if(next){
+            sub.textContent="The canteen is currently closed.";
+            pill.style.display="inline-flex";
+            document.getElementById("nextSessionTxt").textContent="Next: "+(next.emoji||"")+" "+next.label+" opens at "+fmtHour(next.start,next.startMin||0);
+        } else { if(sub) sub.textContent="No more sessions today. See you tomorrow!"; }
+    } else {
+        banner.style.display="flex"; overlay.classList.remove("show");
+        if(cartPanel){ cartPanel.style.opacity="1"; cartPanel.style.pointerEvents=""; }
+        var liveSched={}; try{ liveSched=JSON.parse(localStorage.getItem("canteenSchedule"))||{}; }catch(e){}
+        var s=(session!=="manual_open")?(liveSched[session]||canteenSchedule[session]):null;
+        banner.className="session-banner open";
+        if(session==="manual_open"||!s){
+            document.getElementById("sessionEmoji").textContent="🟢";
+            document.getElementById("sessionName").textContent="Canteen Open";
+            document.getElementById("sessionSub").textContent="Manually opened by admin · "+selectedCanteen;
+            document.getElementById("sessionTime").textContent="Open now";
+            document.getElementById("sessionBadge").textContent="Open Now";
+            document.getElementById("sessionBadge").className="session-badge badge-open";
+            const select=document.getElementById("slot");
+            if(select&&!select.options.length){
+                var now=new Date(); var slots=[];
+                for(var hh=now.getHours();hh<23;hh++){
+                    for(var mm=0;mm<60;mm+=10){
+                        var p=hh<12?"AM":"PM"; var d=hh>12?hh-12:(hh===0?12:hh);
+                        slots.push(d+":"+String(mm).padStart(2,"0")+" "+p);
+                    }
+                }
+                select.innerHTML=slots.slice(0,12).map(function(sl){ return "<option>"+sl+"</option>"; }).join("");
+            }
+        } else {
+            var left=getMinutesLeft(); var hrs=Math.floor(left/60); var mins=left%60;
+            var timeLeft=hrs>0?(hrs+"h "+mins+"m remaining"):(mins+" min remaining");
+            document.getElementById("sessionEmoji").textContent=s.emoji||"🍽";
+            document.getElementById("sessionName").textContent=s.label+" Session";
+            document.getElementById("sessionSub").textContent=fmtHour(s.start,s.startMin||0)+" – "+fmtHour(s.end===24?0:s.end,s.endMin||0)+" · "+selectedCanteen;
+            document.getElementById("sessionTime").textContent=timeLeft;
+            document.getElementById("sessionBadge").textContent="Open Now";
+            document.getElementById("sessionBadge").className="session-badge badge-open";
+            const slots=getAvailableSlots(session);
+            const select=document.getElementById("slot");
+            const prev=select.value;
+            select.innerHTML=slots.length?slots.map(function(sl){ return "<option>"+sl+"</option>"; }).join(""):"<option disabled>No slots remaining</option>";
+            if(slots.includes(prev)) select.value=prev;
+        }
+    }
+}
+applySession();
+setInterval(applySession,5000);
+document.getElementById("canteenName").innerText=selectedCanteen;
+if(user) document.getElementById("userName").innerText="Hi, "+user.name;
+
+const AMITY_MENU=[{"id":101,"name":"Tea","price":10,"emoji":"☕","category":"Hot Beverages","inStock":true},{"id":102,"name":"Coffee","price":15,"emoji":"☕","category":"Hot Beverages","inStock":true},{"id":103,"name":"Haldi Milk","price":15,"emoji":"🥛","category":"Hot Beverages","inStock":true},{"id":104,"name":"Bournvita / Boost / Horlicks","price":25,"emoji":"🥤","category":"Hot Beverages","inStock":true},{"id":201,"name":"Idli Vada Sambar","price":50,"emoji":"🫓","category":"Breakfast & Snacks","inStock":true},{"id":202,"name":"Bisibelebath","price":40,"emoji":"🍲","category":"Breakfast & Snacks","inStock":true},{"id":203,"name":"Chow Chow Bath","price":40,"emoji":"🍛","category":"Breakfast & Snacks","inStock":true},{"id":204,"name":"Idli Sambar","price":40,"emoji":"🫓","category":"Breakfast & Snacks","inStock":true},{"id":205,"name":"Rice Bath","price":40,"emoji":"🍚","category":"Breakfast & Snacks","inStock":true},{"id":206,"name":"Puliydbare Rice","price":40,"emoji":"🍚","category":"Breakfast & Snacks","inStock":true},{"id":207,"name":"Veg Pulav","price":40,"emoji":"🍛","category":"Breakfast & Snacks","inStock":true},{"id":208,"name":"Chitranna","price":40,"emoji":"🍋","category":"Breakfast & Snacks","inStock":true},{"id":209,"name":"Mangalore Buns","price":40,"emoji":"🥐","category":"Breakfast & Snacks","inStock":true},{"id":210,"name":"Goli Bhaje","price":40,"emoji":"🟤","category":"Breakfast & Snacks","inStock":true},{"id":211,"name":"Pudina Rice","price":40,"emoji":"🌿","category":"Breakfast & Snacks","inStock":true},{"id":212,"name":"Tomato Bath","price":40,"emoji":"🍅","category":"Breakfast & Snacks","inStock":true},{"id":213,"name":"Avalakki Uppit","price":40,"emoji":"🌾","category":"Breakfast & Snacks","inStock":true},{"id":214,"name":"Puri Bhaji","price":40,"emoji":"🫓","category":"Breakfast & Snacks","inStock":true},{"id":215,"name":"Mirchi Bhajji","price":40,"emoji":"🌶️","category":"Breakfast & Snacks","inStock":true},{"id":216,"name":"Egg Omlet Bread","price":40,"emoji":"🍳","category":"Breakfast & Snacks","inStock":true},{"id":217,"name":"Egg Bhurji Bread","price":50,"emoji":"🍞","category":"Breakfast & Snacks","inStock":true},{"id":218,"name":"Boiled Egg","price":20,"emoji":"🥚","category":"Breakfast & Snacks","inStock":true},{"id":301,"name":"Jeera Rice","price":65,"emoji":"🍚","category":"Rice Items","inStock":true},{"id":302,"name":"Lemon Rice","price":65,"emoji":"🍋","category":"Rice Items","inStock":true},{"id":303,"name":"Curd Rice","price":65,"emoji":"🍚","category":"Rice Items","inStock":true},{"id":304,"name":"Curd Rice (Tadka)","price":70,"emoji":"🍚","category":"Rice Items","inStock":true},{"id":305,"name":"Dal Khichidi","price":70,"emoji":"🥘","category":"Rice Items","inStock":true},{"id":306,"name":"Masala Rice","price":65,"emoji":"🍛","category":"Rice Items","inStock":true},{"id":307,"name":"Egg Bhurji Rice","price":70,"emoji":"🍳","category":"Rice Items","inStock":true},{"id":308,"name":"Veg Pulao Raita","price":80,"emoji":"🍛","category":"Rice Items","inStock":true},{"id":309,"name":"Green Peas Pulao","price":70,"emoji":"🟢","category":"Rice Items","inStock":true},{"id":310,"name":"Paneer Pulao","price":90,"emoji":"🍛","category":"Rice Items","inStock":true},{"id":311,"name":"Veg Biryani","price":80,"emoji":"🍛","category":"Rice Items","inStock":true},{"id":312,"name":"Egg Biryani","price":80,"emoji":"🍳","category":"Rice Items","inStock":true},{"id":313,"name":"Paneer Biryani","price":80,"emoji":"🍛","category":"Rice Items","inStock":true},{"id":314,"name":"Half Rice","price":20,"emoji":"🍚","category":"Rice Items","inStock":true},{"id":315,"name":"Full Rice","price":30,"emoji":"🍚","category":"Rice Items","inStock":true},{"id":401,"name":"Plain Dosa","price":40,"emoji":"🥞","category":"Dosa","inStock":true},{"id":402,"name":"Cheese Plain Dosa","price":40,"emoji":"🧀","category":"Dosa","inStock":true},{"id":403,"name":"Butter Plain Dosa","price":55,"emoji":"🧈","category":"Dosa","inStock":true},{"id":404,"name":"Masala Dosa","price":50,"emoji":"🥞","category":"Dosa","inStock":true},{"id":405,"name":"Butter Masala Dosa","price":60,"emoji":"🧈","category":"Dosa","inStock":true},{"id":406,"name":"Cheese Masala Dosa","price":65,"emoji":"🧀","category":"Dosa","inStock":true},{"id":407,"name":"Mysore Plain Dosa","price":65,"emoji":"🥞","category":"Dosa","inStock":true},{"id":408,"name":"Mysore Masala Dosa","price":59,"emoji":"🥞","category":"Dosa","inStock":true},{"id":409,"name":"Schezwan Plain Dosa","price":65,"emoji":"🌶️","category":"Dosa","inStock":true},{"id":410,"name":"Schezwan Masala Dosa","price":95,"emoji":"🌶️","category":"Dosa","inStock":true},{"id":411,"name":"Cheese Schezwan Plain Dosa","price":60,"emoji":"🧀","category":"Dosa","inStock":true},{"id":412,"name":"Cheese Schezwan Masala Dosa","price":75,"emoji":"🧀","category":"Dosa","inStock":true},{"id":501,"name":"Plain Uttappam","price":40,"emoji":"🥞","category":"Uttappam","inStock":true},{"id":502,"name":"Onion Uttappam","price":55,"emoji":"🧅","category":"Uttappam","inStock":true},{"id":503,"name":"Tomato Uttappam","price":55,"emoji":"🍅","category":"Uttappam","inStock":true},{"id":504,"name":"Tomato Onion Uttappam","price":60,"emoji":"🥞","category":"Uttappam","inStock":true},{"id":505,"name":"Masala Uttappam","price":60,"emoji":"🌶️","category":"Uttappam","inStock":true},{"id":601,"name":"Veg Fried Rice","price":75,"emoji":"🍚","category":"Chinese","inStock":true},{"id":602,"name":"Veg Sez Fried Rice","price":85,"emoji":"🌶️","category":"Chinese","inStock":true},{"id":603,"name":"Egg Fried Rice","price":85,"emoji":"🍳","category":"Chinese","inStock":true},{"id":604,"name":"Egg Sez Fried Rice","price":90,"emoji":"🌶️","category":"Chinese","inStock":true},{"id":605,"name":"Paneer Fried Rice","price":85,"emoji":"🧀","category":"Chinese","inStock":true},{"id":606,"name":"Paneer Sez Fried Rice","price":90,"emoji":"🌶️","category":"Chinese","inStock":true},{"id":607,"name":"Mushroom Fried Rice","price":85,"emoji":"🍄","category":"Chinese","inStock":true},{"id":608,"name":"Veg Hakka Noodles","price":75,"emoji":"🍜","category":"Chinese","inStock":true},{"id":609,"name":"Veg Sez Noodles","price":80,"emoji":"🌶️","category":"Chinese","inStock":true},{"id":610,"name":"Egg Noodles","price":85,"emoji":"🍳","category":"Chinese","inStock":true},{"id":611,"name":"Egg Sez Noodles","price":90,"emoji":"🌶️","category":"Chinese","inStock":true},{"id":612,"name":"Garlic Fried Rice","price":85,"emoji":"🧄","category":"Chinese","inStock":true},{"id":613,"name":"Paneer Chilli","price":75,"emoji":"🌶️","category":"Chinese","inStock":true},{"id":614,"name":"Veg Manchurian","price":70,"emoji":"🥬","category":"Chinese","inStock":true},{"id":701,"name":"Dal Fry","price":40,"emoji":"🫕","category":"Curry","inStock":true},{"id":702,"name":"Dal Butter Fry","price":45,"emoji":"🧈","category":"Curry","inStock":true},{"id":703,"name":"Dal Tarka","price":45,"emoji":"🫕","category":"Curry","inStock":true},{"id":704,"name":"Chana Masala","price":60,"emoji":"🟤","category":"Curry","inStock":true},{"id":705,"name":"Aloo Mutter","price":55,"emoji":"🥔","category":"Curry","inStock":true},{"id":706,"name":"Aloo Shimla","price":55,"emoji":"🫑","category":"Curry","inStock":true},{"id":707,"name":"Aloo Jeera","price":55,"emoji":"🥔","category":"Curry","inStock":true},{"id":708,"name":"Aloo Palak","price":55,"emoji":"🥬","category":"Curry","inStock":true},{"id":709,"name":"Aloo Gobi","price":55,"emoji":"🥦","category":"Curry","inStock":true},{"id":710,"name":"Mutter Paneer","price":70,"emoji":"🧀","category":"Curry","inStock":true},{"id":711,"name":"Paneer Masala","price":80,"emoji":"🧀","category":"Curry","inStock":true},{"id":712,"name":"Paneer Butter Masala","price":65,"emoji":"🧈","category":"Curry","inStock":true},{"id":713,"name":"Palak Paneer","price":70,"emoji":"🥬","category":"Curry","inStock":true},{"id":714,"name":"Mushroom Masala","price":80,"emoji":"🍄","category":"Curry","inStock":true},{"id":715,"name":"Egg Masala","price":65,"emoji":"🍳","category":"Curry","inStock":true},{"id":716,"name":"Egg Butter Masala","price":75,"emoji":"🧈","category":"Curry","inStock":true},{"id":717,"name":"Paneer Burji","price":80,"emoji":"🧀","category":"Curry","inStock":true},{"id":718,"name":"Paneer Kolhapuri","price":70,"emoji":"🌶️","category":"Curry","inStock":true},{"id":719,"name":"Lasooni Paneer","price":80,"emoji":"🧄","category":"Curry","inStock":true}];
+
+const defaultMenus={
+    MRC:AMITY_MENU,
+    Khuksi:[
+        {id:4,name:"Fried Rice",price:70,emoji:"🍚",category:"Chinese",inStock:true},
+        {id:5,name:"Maggie",price:40,emoji:"🍜",category:"Chinese",inStock:true},
+        {id:6,name:"Egg Puff",price:25,emoji:"🥐",category:"Breakfast & Snacks",inStock:true}
+    ]
+};
+
+let quantities={};
+const cartDiv=document.getElementById("cart");
+const totalSpan=document.getElementById("total");
+
+function getMenuItems(){
+    const saved=JSON.parse(localStorage.getItem("menu_"+selectedCanteen));
+    const hasCategories=saved&&saved.length>0&&saved.some(i=>i.category);
+    const all=hasCategories?saved:(defaultMenus[selectedCanteen]||[]);
+    return all.filter(i=>i.inStock!==false);
+}
+function getCatSpecials(){
+    try{ return JSON.parse(localStorage.getItem("catSpecials_"+selectedCanteen)||"{}"); }
+    catch(e){ return {}; }
+}
+
+const CAT_ICONS={"Hot Beverages":"☕","Breakfast & Snacks":"🍳","Rice Items":"🍛","Dosa":"🥞","Uttappam":"🧇","Chinese":"🍜","Curry":"🍲","Veg":"🥦","Non-Veg":"🍗","Snacks":"🥟","Beverages":"🥤"};
+function getCatIcon(cat){ return CAT_ICONS[cat]||"🍴"; }
+
+let lastSpecialHash="";
+
+function renderSpecial(items, catSpecials){
+    var wrap=document.getElementById("specialWrap");
+    if(!wrap) return;
+
+    var specialCat=Object.keys(catSpecials).find(function(c){ return !!catSpecials[c]; });
+
+    var hash=(specialCat||"_")+"|"+JSON.stringify(
+        items.filter(function(i){ return i.isSpecial||(i.category===specialCat); })
+             .map(function(i){ return i.id+i.name+i.price; })
+    );
+    if(hash===lastSpecialHash) return;
+    lastSpecialHash=hash;
+
+    // CASE 1: Category marked special — show full category hero
+    if(specialCat){
+        var catItems=items.filter(function(i){ return i.category===specialCat; });
+        var catIcon=getCatIcon(specialCat);
+        var starCount=catItems.filter(function(i){ return i.isSpecial; }).length;
+        catItems.forEach(function(i){ if(quantities[i.id]===undefined) quantities[i.id]=0; });
+
+        // Starred items first, then rest
+        var starred=catItems.filter(function(i){ return i.isSpecial; });
+        var rest=catItems.filter(function(i){ return !i.isSpecial; });
+        var display=starred.concat(rest);
+
+        var itemsHtml=display.map(function(item){
+            var isStarred=!!item.isSpecial;
+            return "<div class='cat-special-item"+(isStarred?" starred":"")+"'>" +
+                "<div class='cs-item-emoji'>"+(item.emoji||"🍽")+"</div>" +
+                "<div class='cs-item-body'>" +
+                    "<div class='cs-item-name'>" +
+                        item.name +
+                        (isStarred?"<span class='cs-star-badge'>⭐ Pick</span>":"") +
+                    "</div>" +
+                    "<div class='cs-item-price'>₹"+item.price+"</div>" +
+                "</div>" +
+                "<div class='cs-qty'>" +
+                    "<div class='qty-control'>" +
+                        "<button class='qty-btn' onclick='changeQty("+item.id+",-1)'>−</button>" +
+                        "<div class='qty-display' id='qty-sp-"+item.id+"'>"+(quantities[item.id]||0)+"</div>" +
+                        "<button class='qty-btn' onclick='changeQty("+item.id+",1)'>+</button>" +
+                    "</div>" +
+                "</div>" +
+            "</div>";
+        }).join("");
+
+        wrap.innerHTML=
+            "<div class='cat-special-hero'>" +
+                "<div class='cat-special-top'>" +
+                    "<div class='cat-special-glow'></div>" +
+                    "<div class='cat-special-icon'>"+catIcon+"</div>" +
+                    "<div class='cat-special-info'>" +
+                        "<div class='cat-special-eyebrow'><span class='fire-icon'>🔥</span> Today's Special Category</div>" +
+                        "<div class='cat-special-title'>"+specialCat+"</div>" +
+                        "<div class='cat-special-sub'>" +
+                            display.length+" items available" +
+                            (starCount?" &nbsp;·&nbsp; "+starCount+" chef's pick"+(starCount>1?"s":""):"") +
+                        "</div>" +
+                    "</div>" +
+                "</div>" +
+                "<div class='cat-special-divider'></div>" +
+                "<div class='cat-special-items'>"+itemsHtml+"</div>" +
+                (starCount?"<div class='cat-special-footer'>⭐ Pick = Chef's recommended item in this category</div>":"") +
+            "</div>";
+        return;
+    }
+
+    // CASE 2: Single item marked special
+    var special=items.find(function(i){ return i.isSpecial; });
+    if(!special){
+        wrap.innerHTML=
+            "<div style='background:linear-gradient(135deg,#1a1612,#221e14);border:1.5px dashed rgba(245,166,35,0.3);border-radius:20px;padding:22px 32px;display:flex;align-items:center;gap:18px;animation:fadeUp 0.4s ease both'>" +
+                "<div style='font-size:2.2rem;animation:floatEmoji 3s ease-in-out infinite'>🌟</div>" +
+                "<div>" +
+                    "<div style='font-size:0.68rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px'>Today's Special</div>" +
+                    "<div style='font-family:Playfair Display,serif;font-size:1.5rem;font-weight:900;background:linear-gradient(90deg,#f5a623,#ffcc66,#f5a623);background-size:200% auto;animation:shimmerText 2.5s linear infinite;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text'>✨ Everything is Special Today! ✨</div>" +
+                    "<div style='font-size:0.82rem;color:var(--muted);margin-top:6px'>All items freshly prepared — pick your favourite!</div>" +
+                "</div>" +
+            "</div>";
+        return;
+    }
+
+    if(quantities[special.id]===undefined) quantities[special.id]=0;
+    wrap.innerHTML=
+        "<div class='special-card'>" +
+            "<div class='special-glow'></div>" +
+            "<div class='special-emoji-wrap'>"+(special.emoji||"🍽")+"</div>" +
+            "<div class='special-body'>" +
+                "<div class='special-eyebrow'><span class='fire-icon'>🔥</span> Today's Special</div>" +
+                "<div class='special-name'>"+special.name+"</div>" +
+                "<div class='special-price'>₹"+special.price+"</div>" +
+                "<div class='special-badges'>" +
+                    "<span class='special-badge badge-fast'>⚡ Quick Serve</span>" +
+                    "<span class='special-badge badge-hot'>🔥 Chef's Pick</span>" +
+                "</div>" +
+            "</div>" +
+            "<div class='special-qty'>" +
+                "<div class='special-qty-label'>Add to cart</div>" +
+                "<div class='qty-control'>" +
+                    "<button class='qty-btn' onclick='changeQty("+special.id+",-1)'>−</button>" +
+                    "<div class='qty-display' id='qty-sp-"+special.id+"'>"+(quantities[special.id]||0)+"</div>" +
+                    "<button class='qty-btn' onclick='changeQty("+special.id+",1)'>+</button>" +
+                "</div>" +
+            "</div>" +
+        "</div>";
+}
+
+const openSections=new Set();
+
+function toggleSection(cat){
+    if(openSections.has(cat)) openSections.delete(cat);
+    else openSections.add(cat);
+    var el=document.getElementById("acc-"+cat.replace(/[^a-zA-Z0-9]/g,"_"));
+    if(el) el.classList.toggle("active",openSections.has(cat));
+}
+
+function buildItemCard(item){
+    if(quantities[item.id]===undefined) quantities[item.id]=0;
+    return "<div class='menu-card'>" +
+        "<div class='card-top'>" +
+            "<div class='item-emoji'>"+(item.emoji||"🍽")+"</div>" +
+            "<div>" +
+                "<div style='font-weight:600;font-size:0.88rem'>"+item.name+
+                    (item.isSpecial?"<span style='font-size:0.6rem;background:rgba(245,166,35,0.15);color:var(--amber);padding:2px 7px;border-radius:10px;font-weight:700;margin-left:6px'>⭐</span>":"")+
+                "</div>" +
+                "<div style='color:var(--amber);font-weight:700;font-size:0.9rem'>₹"+item.price+"</div>" +
+            "</div>" +
+        "</div>" +
+        "<div class='card-bottom'>" +
+            "<div class='qty-control'>" +
+                "<button class='qty-btn' onclick='changeQty("+item.id+",-1)'>−</button>" +
+                "<div class='qty-display' id='qty-"+item.id+"'>"+(quantities[item.id]||0)+"</div>" +
+                "<button class='qty-btn' onclick='changeQty("+item.id+",1)'>+</button>" +
+            "</div>" +
+        "</div>" +
+    "</div>";
+}
+
+let lastMenuHash="";
+function renderMenu(){
+    var allItems=getMenuItems();
+    var catSpecials=getCatSpecials();
+    var newHash=JSON.stringify(allItems.map(function(i){ return i.id+i.name+i.price+i.inStock+i.isSpecial+i.category; }))+JSON.stringify(catSpecials);
+    allItems.forEach(function(i){ if(quantities[i.id]===undefined) quantities[i.id]=0; });
+    if(newHash===lastMenuHash) return;
+    lastMenuHash=newHash;
+
+    renderSpecial(allItems,catSpecials);
+
+    var catMap={}; var catOrder=[];
+    allItems.forEach(function(item){
+        var cat=item.category||"Other";
+        if(!catMap[cat]){ catMap[cat]=[]; catOrder.push(cat); }
+        catMap[cat].push(item);
+    });
+
+    var accord=document.getElementById("menuAccordion");
+    if(!accord) return;
+    accord.innerHTML="";
+
+    catOrder.forEach(function(cat,idx){
+        var items=catMap[cat];
+        var icon=getCatIcon(cat);
+        var isOpen=openSections.has(cat);
+        var safeId="acc-"+cat.replace(/[^a-zA-Z0-9]/g,"_");
+        var section=document.createElement("div");
+        section.className="acc-section"+(isOpen?" active":"");
+        section.id=safeId;
+        section.style.animationDelay=(idx*0.05)+"s";
+        section.innerHTML=
+            "<div class='acc-header' data-cat='"+cat+"' onclick='handleAccToggle(this)'>" +
+                "<div class='acc-header-left'>" +
+                    "<div class='acc-cat-icon'>"+icon+"</div>" +
+                    "<div>" +
+                        "<div class='acc-cat-name'>"+cat+"</div>" +
+                        "<div class='acc-count'>"+items.length+" items</div>" +
+                    "</div>" +
+                "</div>" +
+                "<span class='acc-chevron'>"+(isOpen?"▲":"▼")+"</span>" +
+            "</div>" +
+            "<div class='acc-body'><div class='acc-grid'>"+items.map(buildItemCard).join("")+"</div></div>";
+        accord.appendChild(section);
+    });
+
+    updateCart();
+}
+
+function handleAccToggle(el){ toggleSection(el.getAttribute("data-cat")); }
+
+renderMenu();
+setInterval(renderMenu,3000);
+
+function changeQty(id,delta){
+    if(quantities[id]===undefined) quantities[id]=0;
+    quantities[id]=Math.max(0,quantities[id]+delta);
+    ["qty-","qty-sp-"].forEach(function(p){
+        var el=document.getElementById(p+id);
+        if(el) el.innerText=quantities[id];
+    });
+    updateCart();
+}
+
+function updateCart(){
+    let total=0; let html="";
+    getMenuItems().forEach(i=>{
+        if(quantities[i.id]>0){
+            let t=quantities[i.id]*i.price; total+=t;
+            html+=i.name+" × "+quantities[i.id]+" = ₹"+t+"<br>";
+        }
+    });
+    cartDiv.innerHTML=html||"Empty";
+    totalSpan.innerText=total;
+}
+
+function showToast(msg){
+    document.getElementById("toastMsg").innerText=msg;
+    const toast=document.getElementById("toast");
+    toast.classList.add("show");
+    setTimeout(()=>toast.classList.remove("show"),3000);
+}
+
+function placeOrder(){
+    const orderedItems=getMenuItems().filter(i=>quantities[i.id]>0).map(i=>({
+        name:i.name, quantity:quantities[i.id], price:i.price
+    }));
+    if(orderedItems.length===0){ showToast("Add items to your cart first! 🛒"); return; }
+    const slot=document.getElementById("slot").value;
+    const total=orderedItems.reduce((s,i)=>s+i.price*i.quantity,0);
+    localStorage.setItem("pendingOrder",JSON.stringify({
+        canteen:selectedCanteen,items:orderedItems,total:total,slot:slot,date:new Date().toLocaleString()
+    }));
+    window.location.href="payment.html";
+}
+
+function logout(){
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("selectedCanteen");
+    window.location.href="login.html";
+}
+</script>
+
+<script src="noti.js"></script>
+</body>
+</html>

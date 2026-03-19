@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login · Campus Canteen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f4f6fb; --white: #fff; --border: #eef0f7;
+            --text: #2d2d3a; --muted: #9b9bb4; --light: #f0f1f8;
+            --pink: #f8719a; --pink2: #f4436c; --pink-light: rgba(248,113,154,0.10);
+            --blue: #5b8dee; --blue2: #3a6fd8; --blue-light: rgba(91,141,238,0.10);
+            --grad-pink: linear-gradient(135deg,#f8719a,#f4436c);
+            --grad-blue: linear-gradient(135deg,#7eb3f8,#5b8dee);
+            --shadow: 0 4px 24px rgba(100,100,140,0.10);
+            --shadow-lg: 0 12px 48px rgba(100,100,140,0.18);
+        }
+
+        body.dark {
+            --bg: #0f0e13; --white: #1a1825; --border: #2a2740;
+            --text: #f0eaf8; --muted: #6e6a8a; --light: #221f32;
+            --pink-light: rgba(248,113,154,0.13);
+            --blue-light: rgba(91,141,238,0.13);
+            --shadow: 0 4px 24px rgba(0,0,0,0.4);
+            --shadow-lg: 0 12px 48px rgba(0,0,0,0.55);
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg); color: var(--text);
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 24px;
+            transition: background 0.3s, color 0.3s;
+            overflow: hidden;
+        }
+
+        /* ── BG BLOBS ── */
+        .blob {
+            position: fixed; border-radius: 50%;
+            filter: blur(80px); pointer-events: none; z-index: 0;
+            animation: blobFloat 8s ease-in-out infinite;
+        }
+        .blob-1 { width: 400px; height: 400px; background: rgba(248,113,154,0.12); top: -100px; right: -100px; }
+        .blob-2 { width: 300px; height: 300px; background: rgba(91,141,238,0.10); bottom: -80px; left: -80px; animation-delay: -4s; }
+        body.dark .blob-1 { background: rgba(248,113,154,0.07); }
+        body.dark .blob-2 { background: rgba(91,141,238,0.07); }
+
+        /* ── THEME TOGGLE ── */
+        .theme-btn {
+            position: fixed; top: 20px; right: 20px; z-index: 100;
+            width: 44px; height: 44px; border-radius: 13px;
+            border: 1.5px solid var(--border); background: var(--white);
+            cursor: pointer; font-size: 1.15rem;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--shadow); transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .theme-btn:hover { transform: rotate(20deg) scale(1.12); border-color: var(--pink); }
+
+        /* ── WRAPPER ── */
+        .wrapper { position: relative; z-index: 1; width: 100%; max-width: 520px; }
+
+        /* ── HEADER ── */
+        .header { text-align: center; margin-bottom: 40px; animation: fadeDown 0.5s ease both; }
+        .header-logo {
+            width: 68px; height: 68px; background: var(--grad-pink);
+            border-radius: 20px; display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; margin: 0 auto 16px;
+            box-shadow: 0 8px 28px rgba(248,113,154,0.35);
+            animation: popIn 0.6s 0.1s cubic-bezier(0.34,1.56,0.64,1) both;
+            transition: transform 0.3s;
+        }
+        .header-logo:hover { transform: rotate(-8deg) scale(1.08); }
+        .header h1 { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px; }
+        .header p  { font-size: 0.88rem; color: var(--muted); }
+
+        /* ══════════════════════════
+           SCREEN 1 — PICK CANTEEN
+        ══════════════════════════ */
+        #screen-pick {
+            display: flex; flex-direction: column; gap: 16px;
+        }
+
+        .pick-label {
+            text-align: center; font-size: 0.75rem; font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+            margin-bottom: 4px;
+            animation: fadeUp 0.4s 0.2s ease both;
+        }
+
+        .canteen-card {
+            background: var(--white); border-radius: 20px;
+            box-shadow: var(--shadow); padding: 24px 28px;
+            display: flex; align-items: center; gap: 20px;
+            cursor: pointer; border: 2px solid transparent;
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            position: relative; overflow: hidden;
+            animation: fadeUp 0.45s ease both;
+        }
+        .canteen-card:nth-child(2) { animation-delay: 0.1s; }
+        .canteen-card:nth-child(3) { animation-delay: 0.18s; }
+
+        .canteen-card::before {
+            content: '';
+            position: absolute; inset: 0;
+            opacity: 0; transition: opacity 0.3s;
+            border-radius: 18px;
+        }
+        .canteen-card.mrc::before  { background: var(--pink-light); }
+        .canteen-card.khuksi::before { background: var(--blue-light); }
+
+        .canteen-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: var(--shadow-lg); }
+        .canteen-card.mrc:hover   { border-color: var(--pink); }
+        .canteen-card.khuksi:hover { border-color: var(--blue); }
+        .canteen-card:hover::before { opacity: 1; }
+
+        .canteen-card:active { transform: scale(0.97); }
+
+        .canteen-icon {
+            width: 72px; height: 72px; border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.4rem; flex-shrink: 0; position: relative; z-index: 1;
+            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .canteen-card.mrc    .canteen-icon { background: var(--grad-pink); box-shadow: 0 6px 20px rgba(248,113,154,0.35); }
+        .canteen-card.khuksi .canteen-icon { background: var(--grad-blue); box-shadow: 0 6px 20px rgba(91,141,238,0.35); }
+        .canteen-card:hover .canteen-icon { transform: rotate(-10deg) scale(1.12); }
+
+        .canteen-info { flex: 1; position: relative; z-index: 1; }
+        .canteen-name { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; }
+        .canteen-desc { font-size: 0.8rem; color: var(--muted); }
+        .canteen-items {
+            display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;
+        }
+        .canteen-tag {
+            font-size: 0.68rem; font-weight: 700; padding: 2px 9px;
+            border-radius: 20px;
+        }
+        .canteen-card.mrc    .canteen-tag { background: var(--pink-light); color: var(--pink2); }
+        .canteen-card.khuksi .canteen-tag { background: var(--blue-light);  color: var(--blue2); }
+
+        .canteen-arrow {
+            font-size: 1.4rem; color: var(--muted);
+            position: relative; z-index: 1;
+            transition: transform 0.25s, color 0.25s;
+        }
+        .canteen-card.mrc:hover    .canteen-arrow { transform: translateX(5px); color: var(--pink); }
+        .canteen-card.khuksi:hover .canteen-arrow { transform: translateX(5px); color: var(--blue); }
+
+        /* ══════════════════════════
+           SCREEN 2 — LOGIN FORM
+        ══════════════════════════ */
+        #screen-login { display: none; }
+
+        .login-card {
+            background: var(--white); border-radius: 22px;
+            box-shadow: var(--shadow-lg); overflow: hidden;
+        }
+
+        .login-card-top {
+            padding: 28px 30px 22px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.78rem; font-weight: 700; color: var(--muted);
+            cursor: pointer; background: none; border: none;
+            font-family: 'Nunito', sans-serif; padding: 0;
+            margin-bottom: 16px;
+            transition: color 0.2s, transform 0.2s;
+        }
+        .back-btn:hover { color: var(--text); transform: translateX(-3px); }
+
+        .selected-canteen-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: 0.78rem; font-weight: 800;
+            padding: 5px 14px; border-radius: 20px; margin-bottom: 14px;
+        }
+        .mrc-badge    { background: var(--pink-light); color: var(--pink2); }
+        .khuksi-badge { background: var(--blue-light);  color: var(--blue2); }
+
+        .login-card-top h2 { font-size: 1.4rem; font-weight: 900; margin-bottom: 4px; }
+        .login-card-top p  { font-size: 0.82rem; color: var(--muted); }
+
+        .login-card-body { padding: 24px 30px 28px; }
+
+        .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+        .form-label { font-size: 0.75rem; font-weight: 700; }
+
+        .input-wrap { position: relative; }
+        .input-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 0.9rem; pointer-events: none; }
+        input {
+            width: 100%; background: var(--light); border: 1.5px solid var(--border);
+            color: var(--text); font-family: 'Nunito', sans-serif;
+            font-size: 0.9rem; font-weight: 500;
+            padding: 12px 13px 12px 38px; border-radius: 12px; outline: none;
+            transition: all 0.22s;
+        }
+        input::placeholder { color: var(--muted); }
+        input:focus {
+            background: var(--white);
+            transform: translateY(-1px);
+        }
+        input.mrc-focus:focus   { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(248,113,154,0.15); }
+        input.blue-focus:focus  { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(91,141,238,0.15); }
+        input.shake { animation: shake 0.28s ease; border-color: var(--pink2) !important; }
+
+        .toggle-btn {
+            position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            font-size: 0.88rem; color: var(--muted); padding: 4px;
+            transition: color 0.2s;
+        }
+        .toggle-btn:hover { color: var(--text); }
+
+        .err-msg { font-size: 0.74rem; font-weight: 700; color: var(--pink2); min-height: 18px; margin-top: 2px; }
+
+        .login-btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            color: white; font-family: 'Nunito', sans-serif;
+            font-size: 0.95rem; font-weight: 800;
+            cursor: pointer; margin-top: 6px;
+            transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .login-btn:hover  { transform: translateY(-2px); }
+        .login-btn:active { transform: scale(0.97); }
+        .login-btn.mrc-btn   { background: var(--grad-pink); box-shadow: 0 5px 18px rgba(248,113,154,0.38); }
+        .login-btn.mrc-btn:hover   { box-shadow: 0 8px 26px rgba(248,113,154,0.50); }
+        .login-btn.khuksi-btn { background: var(--grad-blue); box-shadow: 0 5px 18px rgba(91,141,238,0.38); }
+        .login-btn.khuksi-btn:hover { box-shadow: 0 8px 26px rgba(91,141,238,0.50); }
+
+        .creds-hint {
+            margin-top: 14px; padding: 11px 14px; border-radius: 11px;
+            font-size: 0.75rem; font-weight: 600; text-align: center;
+            transition: background 0.3s;
+        }
+        .creds-hint code { font-family: 'Courier New', monospace; font-weight: 800; font-size: 0.8rem; }
+        .mrc-hint   { background: rgba(248,113,154,0.08); color: var(--pink2); }
+        .khuksi-hint { background: rgba(91,141,238,0.08); color: var(--blue2); }
+
+        /* ── SCREEN TRANSITIONS ── */
+        .screen-enter { animation: slideInRight 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
+        .screen-exit  { animation: slideOutLeft 0.3s ease both; }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeUp      { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeDown    { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes popIn       { from { opacity:0; transform:scale(0.5); } to { opacity:1; transform:scale(1); } }
+        @keyframes slideInRight{ from { opacity:0; transform:translateX(40px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
+        @keyframes slideOutLeft{ from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(-30px); } }
+        @keyframes blobFloat   { 0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-30px) scale(1.05);} }
+        @keyframes shake       { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+        /* ── CHANGE PASSWORD ── */
+        .change-pwd-link {
+            text-align: center; margin-top: 14px;
+            font-size: 0.76rem; font-weight: 700; color: var(--muted);
+            cursor: pointer; transition: color 0.2s;
+            background: none; border: none; width: 100%;
+            font-family: 'Nunito', sans-serif; display:block;
+        }
+        .change-pwd-link:hover { color: var(--text); }
+        .change-pwd-panel {
+            display: none; margin-top: 16px; padding: 16px;
+            border-radius: 14px; border: 1.5px solid var(--border);
+            background: var(--light); animation: fadeUp 0.3s ease both;
+        }
+        .change-pwd-panel.show { display: block; }
+        .change-pwd-panel h4 { font-size: 0.82rem; font-weight: 800; margin-bottom: 12px; }
+        .pwd-save-btn {
+            width: 100%; padding: 11px; border: none; border-radius: 10px;
+            color: white; font-family: 'Nunito', sans-serif;
+            font-size: 0.88rem; font-weight: 800; cursor: pointer; margin-top: 4px;
+            transition: all 0.2s;
+        }
+        .pwd-save-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .pwd-success { font-size: 0.74rem; font-weight: 700; color: #22c55e; text-align: center; margin-top: 8px; min-height: 16px; }
+        .pwd-err { font-size: 0.74rem; font-weight: 700; color: var(--pink2); min-height: 16px; margin-top: 4px; }
+    </style>
+</head>
+<body>
+<script>(function(){if(localStorage.getItem("adminTheme")==="dark")document.body.classList.add("dark");})()</script>
+<script>if(localStorage.getItem("adminCanteen"))window.location.href="admin-dashboard.html";</script>
+
+<!-- BG BLOBS -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- THEME TOGGLE -->
+<button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
+
+<div class="wrapper">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-logo">🍽️</div>
+        <h1>Campus Canteen</h1>
+        <p>Admin Panel — Select your canteen to continue</p>
+    </div>
+
+    <!-- ── SCREEN 1: PICK ── -->
+    <div id="screen-pick">
+        <div class="pick-label">Choose your canteen</div>
+
+        <!-- MRC CARD -->
+        <div class="canteen-card mrc" onclick="selectCanteen('MRC')">
+            <div class="canteen-icon">🏫</div>
+            <div class="canteen-info">
+                <div class="canteen-name">MRC Canteen</div>
+                <div class="canteen-desc">Main block canteen · Ground floor</div>
+                <div class="canteen-items">
+                    <span class="canteen-tag">🍛 Biryani</span>
+                    <span class="canteen-tag">🌯 Rolls</span>
+                    <span class="canteen-tag">🥟 Snacks</span>
+                </div>
+            </div>
+            <div class="canteen-arrow">→</div>
+        </div>
+
+        <!-- KHUKSI CARD -->
+        <div class="canteen-card khuksi" onclick="selectCanteen('Khuksi')">
+            <div class="canteen-icon">🍜</div>
+            <div class="canteen-info">
+                <div class="canteen-name">Khuksi Corner</div>
+                <div class="canteen-desc">Side block canteen · First floor</div>
+                <div class="canteen-items">
+                    <span class="canteen-tag">🍚 Fried Rice</span>
+                    <span class="canteen-tag">🍜 Maggie</span>
+                    <span class="canteen-tag">🥐 Puffs</span>
+                </div>
+            </div>
+            <div class="canteen-arrow">→</div>
+        </div>
+    </div>
+
+    <!-- ── SCREEN 2: LOGIN ── -->
+    <div id="screen-login">
+        <div class="login-card">
+            <div class="login-card-top">
+                <button class="back-btn" onclick="goBack()">← Back</button>
+                <div id="selectedBadge" class="selected-canteen-badge"></div>
+                <h2 id="loginTitle">Sign In</h2>
+                <p id="loginSubtitle">Enter your admin credentials</p>
+            </div>
+            <div class="login-card-body">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <div class="input-wrap">
+                        <span class="input-icon">👤</span>
+                        <input id="loginUser" type="text" placeholder="Enter username" autocomplete="off">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="input-wrap">
+                        <span class="input-icon">🔒</span>
+                        <input id="loginPass" type="password" placeholder="Enter password" style="padding-right:38px">
+                        <button class="toggle-btn" onclick="togglePass()">👁</button>
+                    </div>
+                    <div class="err-msg" id="loginErr"></div>
+                </div>
+                <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In →</button>
+                <div class="creds-hint" id="credsHint"></div>
+                <!-- Links row -->
+                <div style="margin-top:16px">
+                    <!-- Top: center security question -->
+                    <div style="text-align:center;margin-bottom:10px">
+                        <button class="change-pwd-link" style="margin-top:0;font-size:0.78rem;font-weight:800" onclick="goSecurityQuestion()">🛡️ Security Question</button>
+                    </div>
+                    <!-- Bottom: change password left, forgot password right -->
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <button class="change-pwd-link" style="margin-top:0" onclick="goChangePassword()">🔑 Change Password</button>
+                        <button class="change-pwd-link" style="margin-top:0" onclick="goForgotPassword()">🆘 Forgot Password</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Base credentials — can be overridden via localStorage
+    const BASE_CREDS = {
+        MRC:    { username: "mrcadmin",    password: "123" },
+        Khuksi: { username: "khuksiadmin", password: "123" }
+    };
+
+    function getCreds(canteen) {
+        var base = BASE_CREDS[canteen];
+        var savedPwd = localStorage.getItem("adminPwd_" + canteen);
+        return { username: base.username, password: savedPwd || base.password };
+    }
+
+    // Keep CREDS as a proxy for backwards compat with credsHint display
+    const CREDS = BASE_CREDS;
+
+    const LABELS = {
+        MRC:    { emoji: "🏫", name: "MRC Canteen",    badgeCls: "mrc-badge",    btnCls: "mrc-btn",    inputCls: "mrc-focus",    hintCls: "mrc-hint" },
+        Khuksi: { emoji: "🍜", name: "Khuksi Corner",  badgeCls: "khuksi-badge", btnCls: "khuksi-btn", inputCls: "blue-focus",   hintCls: "khuksi-hint" }
+    };
+
+    let activeCanteen = null;
+
+    function selectCanteen(canteen) {
+        activeCanteen = canteen;
+        const L = LABELS[canteen];
+
+        // Update login screen UI
+        document.getElementById("selectedBadge").textContent  = L.emoji + " " + L.name;
+        document.getElementById("selectedBadge").className    = "selected-canteen-badge " + L.badgeCls;
+        document.getElementById("loginTitle").textContent     = "Sign in to " + L.name;
+        document.getElementById("loginSubtitle").textContent  = "Enter your " + L.name + " admin credentials";
+        document.getElementById("loginBtn").className         = "login-btn " + L.btnCls;
+        document.getElementById("loginUser").className        = L.inputCls;
+        document.getElementById("loginPass").className        = L.inputCls;
+        document.getElementById("loginUser").style.paddingRight = "";
+        document.getElementById("loginPass").style.paddingRight = "38px";
+
+        const C = CREDS[canteen];
+        document.getElementById("credsHint").className    = "creds-hint " + L.hintCls;
+        document.getElementById("credsHint").innerHTML    = "Username: <code>" + C.username + "</code>";
+
+        // Clear fields
+        document.getElementById("loginUser").value = "";
+        document.getElementById("loginPass").value = "";
+        document.getElementById("loginErr").textContent = "";
+
+        // Animate screens
+        const pick  = document.getElementById("screen-pick");
+        const login = document.getElementById("screen-login");
+
+        pick.classList.add("screen-exit");
+        setTimeout(() => {
+            pick.style.display  = "none";
+            pick.classList.remove("screen-exit");
+            login.style.display = "block";
+            login.classList.add("screen-enter");
+            setTimeout(() => login.classList.remove("screen-enter"), 500);
+            document.getElementById("loginUser").focus();
+        }, 280);
+    }
+
+    function goBack() {
+        const pick  = document.getElementById("screen-pick");
+        const login = document.getElementById("screen-login");
+
+        login.classList.add("screen-exit");
+        setTimeout(() => {
+            login.style.display  = "none";
+            login.classList.remove("screen-exit");
+            pick.style.display   = "flex";
+            pick.classList.add("screen-enter");
+            setTimeout(() => pick.classList.remove("screen-enter"), 500);
+        }, 280);
+    }
+
+    function doLogin() {
+        const u   = document.getElementById("loginUser").value.trim();
+        const p   = document.getElementById("loginPass").value;
+        const err = document.getElementById("loginErr");
+        err.textContent = "";
+
+        if (!u || !p) { err.textContent = "Please fill in both fields."; return; }
+
+        const cred = getCreds(activeCanteen);
+        if (u === cred.username && p === cred.password) {
+            localStorage.setItem("adminCanteen", activeCanteen);
+            document.getElementById("loginBtn").textContent = "Signing in... ✓";
+            setTimeout(() => window.location.href = "admin-dashboard.html", 500);
+        } else {
+            err.textContent = "Wrong username or password.";
+            ["loginUser","loginPass"].forEach(id => {
+                const el = document.getElementById(id);
+                el.classList.add("shake");
+                setTimeout(() => el.classList.remove("shake"), 400);
+            });
+        }
+    }
+
+    function togglePass() {
+        const el  = document.getElementById("loginPass");
+        const btn = document.querySelector(".toggle-btn");
+        el.type   = el.type === "password" ? "text" : "password";
+        btn.textContent = el.type === "password" ? "👁" : "🙈";
+    }
+
+    document.addEventListener("keydown", e => {
+        if (e.key === "Enter" && document.getElementById("screen-login").style.display !== "none") doLogin();
+    });
+
+    function goChangePassword() {
+        if (activeCanteen) localStorage.setItem("changePwdCanteen", activeCanteen);
+        window.location.href = "admin-change-password.html";
+    }
+
+    function goSecurityQuestion() {
+        if (activeCanteen) localStorage.setItem("secQCanteen", activeCanteen);
+        window.location.href = "admin-security-question.html";
+    }
+
+    function goForgotPassword() {
+        if (activeCanteen) localStorage.setItem("forgotPwdCanteen", activeCanteen);
+        window.location.href = "admin-forgot-password.html";
+    }
+
+    // Theme
+    function toggleTheme() {
+        document.body.classList.toggle("dark");
+        const dark = document.body.classList.contains("dark");
+        localStorage.setItem("adminTheme", dark ? "dark" : "light");
+        document.getElementById("themeBtn").textContent = dark ? "🌙" : "☀️";
+    }
+    if (localStorage.getItem("adminTheme") === "dark") document.getElementById("themeBtn").textContent = "🌙";
+</script>
+</body>
+</html>

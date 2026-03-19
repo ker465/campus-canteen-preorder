@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customers · Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        .customers-layout { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+        .revenue-box { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; display:flex; align-items:center; justify-content:space-between; }
+        .revenue-left h3 { font-size:0.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px; }
+        .revenue-num { font-size:2rem; font-weight:800; color:var(--pink); letter-spacing:-0.5px; }
+        .revenue-right { width:56px; height:56px; background:var(--grad); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:1.6rem; box-shadow:0 4px 14px rgba(248,113,154,.3); }
+        @media(max-width:900px){ .customers-layout{grid-template-columns:1fr;} }
+    
+        /* ══ REVIEWS ══ */
+        .reviews-list { display:flex; flex-direction:column; gap:12px; }
+        .review-card {
+            background:var(--white); border-radius:14px; padding:16px 18px;
+            box-shadow:var(--shadow); animation:fadeUp 0.35s ease both;
+            transition:background var(--transition);
+        }
+        .review-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+        .review-stars  { font-size:1rem; letter-spacing:1px; }
+        .review-meta   { font-size:0.72rem; color:var(--muted); }
+        .review-customer { font-size:0.85rem; font-weight:700; margin-bottom:3px; }
+        .review-items    { font-size:0.75rem; color:var(--muted); margin-bottom:6px; }
+        .review-comment  { font-size:0.83rem; color:var(--text); font-style:italic; padding:8px 12px; background:var(--bg); border-radius:8px; border-left:3px solid var(--amber); }
+        .avg-stars-display { font-size:2.5rem; font-weight:800; color:var(--amber); }
+        .rating-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:5px; font-size:0.78rem; }
+        .rating-bar-bg  { flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+        .rating-bar-fill{ height:100%; background:var(--amber); border-radius:4px; transition:width 0.5s ease; }
+
+    </style>
+</head>
+<body>
+<script>(function(){if(localStorage.getItem("adminTheme")==="dark")document.body.classList.add("dark");})()</script>
+<script src="admin.js"></script>
+<script src="../schedule.js"></script>
+<script>if(!localStorage.getItem("adminCanteen")) window.location.href="admin-login.html";</script>
+
+
+
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-circle">🍽</div>
+        <div><div class="logo-name">Canteen</div><div class="logo-sub">Admin Panel</div></div>
+    </div>
+    <div class="nav-section">Main</div>
+    <a class="nav-link" href="admin-dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a class="nav-link" href="admin-orders.html"><span class="nav-icon">🧾</span> Orders</a>
+    <a class="nav-link" href="admin-menu.html"><span class="nav-icon">🍽</span> Menu</a>
+    <a class="nav-link" href="admin-schedule.html"><span class="nav-icon">🕐</span> Schedule</a>
+    <div class="nav-section">Reports</div>
+    <a class="nav-link active" href="admin-customers.html"><span class="nav-icon">👥</span> Customers</a>
+    <a class="nav-link" href="admin-reviews.html"><span class="nav-icon">⭐</span> Reviews</a>
+    <div class="sidebar-promo">
+        <span class="promo-icon">🍳</span>
+        <div class="promo-title">Manage your menu easily</div>
+        <div class="promo-sub">Add or update items anytime</div>
+        <button class="promo-btn" onclick="window.location.href='admin-menu.html'">+ Add Item</button>
+    </div>
+    <div class="sidebar-footer">
+        <button class="logout-nav" onclick="adminLogout()"><span>🚪</span> Log out</button>
+    </div>
+</aside>
+
+<div class="main">
+    <div class="topbar">
+        <div class="topbar-left"><h1>Customers</h1><p>Customer list and order history</p></div>
+        <div class="topbar-right">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode"><span class="icon-sun">☀️</span><span class="icon-moon">🌙</span></button><span id="canteenBadge" style="font-size:0.75rem;font-weight:700;padding:5px 14px;border-radius:20px;background:var(--pink-light);color:var(--pink2)"></span>
+            <div class="topbar-search"><span>🔍</span><input type="text" placeholder="Search customers..."></div>
+<div class="admin-bell-wrap" id="adminBellWrap">
+                <button class="admin-bell-btn" id="adminBellBtn" title="New Orders">
+                    🔔
+                    <div class="admin-bell-badge" id="adminBellBadge">0</div>
+                </button>
+                <div class="admin-bell-dropdown" id="adminBellDropdown">
+                    <div class="bell-drop-header">
+                        <div class="bell-drop-title">🛒 Incoming Orders <span id="bellUnreadCount" style="font-size:0.72rem;color:var(--muted);font-weight:600"></span></div>
+                        <button class="bell-clear-btn" onclick="clearBellOrders()">Mark all read</button>
+                    </div>
+                    <div class="bell-drop-list" id="bellDropList"></div>
+                    <div class="bell-drop-footer"><a href="admin-orders.html">View all orders →</a></div>
+                </div>
+            </div>
+            <div class="admin-pill">
+                <div class="admin-avatar">A</div>
+                <div><div class="admin-name">Admin</div><div class="admin-role">Manager</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <!-- ══ SKELETON ══ -->
+        <div id="skeleton" style="display:block">
+            <!-- Revenue strip -->
+            <div class="sk-customer-strip">
+                <div class="sk-cust-card"><div class="sk sk-cust-val"></div><div class="sk sk-cust-label"></div></div>
+                <div class="sk-cust-card" style="animation-delay:0.1s"><div class="sk sk-cust-val"></div><div class="sk sk-cust-label"></div></div>
+                <div class="sk-cust-card" style="animation-delay:0.2s"><div class="sk sk-cust-val"></div><div class="sk sk-cust-label"></div></div>
+                <div class="sk-cust-card" style="animation-delay:0.3s"><div class="sk sk-cust-val"></div><div class="sk sk-cust-label"></div></div>
+            </div>
+            <!-- Customer table -->
+            <div class="sk-section-hdr" style="margin-bottom:14px"><div class="sk sk-title"></div></div>
+            <div class="sk-table">
+                <div class="sk-table-header"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+                <div class="sk-table-row"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+                <div class="sk-table-row"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+                <div class="sk-table-row"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+                <div class="sk-table-row"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+                <div class="sk-table-row"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+            </div>
+        </div>
+
+
+        <div id="realContent" style="display:none">
+        <!-- Revenue summary strip -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px" id="revenueStrip"></div>
+
+        <div class="customers-layout">
+
+            <!-- CUSTOMERS TABLE -->
+            <div>
+                <div class="section-hdr"><h2>General Customers</h2></div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead><tr><th>Customer Name</th><th>Total Orders</th><th>Total Spent</th><th>Favourite Item</th></tr></thead>
+                        <tbody id="customerBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ORDER HISTORY -->
+            <div>
+                <div class="section-hdr">
+                    <h2>Order History</h2>
+                    <div class="tab-group">
+                        <button class="tab-item" onclick="setFilter('today',this)">Today</button>
+                        <button class="tab-item" onclick="setFilter('yesterday',this)">Yesterday</button>
+                        <button class="tab-item" onclick="setFilter('week',this)">This Week</button>
+                        <button class="tab-item active" onclick="setFilter('all',this)">All</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead><tr><th>Token</th><th>Items</th><th>Payment</th><th>Amount</th><th>Status</th></tr></thead>
+                        <tbody id="historyBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ REVIEWS ══ -->
+        <div style="margin-top:24px">
+            <div class="section-hdr">
+                <h2>⭐ Customer Reviews</h2>
+            </div>
+            <div style="display:grid;grid-template-columns:220px 1fr;gap:20px;margin-bottom:20px">
+                <div class="panel" style="padding:20px;text-align:center">
+                    <div style="font-size:2.5rem;font-weight:800;color:var(--amber)" id="avgStars">–</div>
+                    <div style="font-size:0.78rem;color:var(--muted);margin-bottom:12px">Average Rating</div>
+                    <div id="ratingBars"></div>
+                    <div style="font-size:0.72rem;color:var(--muted);margin-top:8px" id="totalReviews">0 reviews</div>
+                </div>
+                <div class="reviews-list" id="reviewsList"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</div><!-- /realContent -->
+
+<div class="toast" id="adminToast"><span id="toastIcon">✅</span><span id="toastMsg"></span></div>
+
+<script>
+    let histFilter = "all";
+
+    function setFilter(f, btn) {
+        histFilter = f;
+        document.querySelectorAll(".tab-item").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        renderHistory();
+    }
+
+    var _lastHash_admin_customers = "";
+    function render() {
+        const orders = getMyOrders();
+        const user   = JSON.parse(localStorage.getItem("user"));
+        const today  = new Date().toDateString();
+        const todayO = orders.filter(o=>new Date(o.date).toDateString()===today);
+        const allRev = orders.reduce((s,o)=>s+(o.total||0),0);
+        const todayR = todayO.reduce((s,o)=>s+(o.total||0),0);
+
+        // Revenue strip
+        document.getElementById("revenueStrip").innerHTML = [
+            {label:"Total Revenue",   val:"₹"+allRev,  icon:"💰", cls:""},
+            {label:"Today's Revenue", val:"₹"+todayR,  icon:"📅", cls:"amber"},
+            {label:"Total Orders",    val:orders.length,icon:"🧾",cls:"green"},
+            {label:"Today's Orders",  val:todayO.length,icon:"🔢",cls:"blue"},
+        ].map((c,i)=>`
+            <div class="stat-card ${c.cls}" style="animation-delay:${i*0.07}s">
+                <div class="stat-info"><div class="stat-value">${c.val}</div><div class="stat-label">${c.label}</div></div>
+                <div class="stat-icon-w">${c.icon}</div>
+            </div>`).join('');
+
+        // Customers
+        const freq = {};
+        orders.forEach(o=>o.items.forEach(i=>{freq[i.name]=(freq[i.name]||0)+i.quantity;}));
+        const fav = Object.entries(freq).sort((a,b)=>b[1]-a[1])[0]?.[0]||"–";
+
+        document.getElementById("customerBody").innerHTML = orders.length && user
+            ? `<tr>
+                <td><div style="font-weight:700">${user.name}</div><div style="font-size:0.75rem;color:var(--muted)">${user.email}</div></td>
+                <td><span style="background:var(--pink-light);color:var(--pink);font-weight:700;padding:2px 10px;border-radius:20px;font-size:0.8rem">${orders.length}</span></td>
+                <td style="font-weight:700;color:var(--pink)">₹${allRev}</td>
+                <td style="color:var(--muted)">${fav}</td>
+              </tr>`
+            : `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:32px">No customers yet</td></tr>`;
+    }
+
+    function renderHistory() {
+        const all  = getMyOrders();
+        const now  = new Date();
+        const yest = new Date(now-86400000).toDateString();
+        const week = new Date(now-7*86400000);
+        let filtered = histFilter==="today"     ? all.filter(o=>new Date(o.date).toDateString()===now.toDateString())
+                     : histFilter==="yesterday" ? all.filter(o=>new Date(o.date).toDateString()===yest)
+                     : histFilter==="week"      ? all.filter(o=>new Date(o.date)>=week)
+                     : all;
+        filtered = [...filtered].reverse();
+        document.getElementById("historyBody").innerHTML = filtered.length
+            ? filtered.map(o=>`<tr>
+                <td><span style="background:var(--grad);color:white;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:800">#${o.tokenNumber}</span></td>
+                <td style="color:var(--muted);font-size:0.8rem">${o.items.map(i=>i.name+" ×"+i.quantity).join(", ")}</td>
+                <td>${o.paymentMethod}</td>
+                <td style="font-weight:700;color:var(--pink)">₹${o.total}</td>
+                <td><span class="badge badge-${(o.orderStatus||'').toLowerCase()}">${o.orderStatus}</span></td>
+              </tr>`).join('')
+            : `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px">No orders in this period</td></tr>`;
+    }
+
+    function showContent() {
+        const sk = document.getElementById("skeleton");
+        const ct = document.getElementById("realContent");
+        if (!sk || !ct) return;
+        sk.style.display = "none";
+        ct.style.display = "block";
+    }
+    // Show content first so elements exist, then populate
+    showContent();
+    try { render(); } catch(e) { console.error("render:", e); }
+    try { renderHistory(); } catch(e) { console.error("renderHistory:", e); }
+    try { renderReviews(); } catch(e) { console.error("renderReviews:", e); }
+    setInterval(function() {
+        try { render(); } catch(e) {}
+        try { renderHistory(); } catch(e) {}
+    }, 5000);
+    setInterval(renderReviews, 5000);
+</script>
+
+<script>
+// ── THEME: runs on every page ──────────────────
+function toggleTheme() {
+    document.body.classList.toggle("dark");
+    const isDark = document.body.classList.contains("dark");
+    localStorage.setItem("adminTheme", isDark ? "dark" : "light");
+
+    // Update icon visibility via class (CSS handles sun/moon swap)
+    // Also update any plain emoji toggles if present
+    const btn = document.querySelector(".theme-toggle");
+    if (btn) {
+        btn.title = isDark ? "Switch to light mode" : "Switch to dark mode";
+    }
+}
+
+    function renderReviews() {
+        var canteen = localStorage.getItem("adminCanteen") || "MRC";
+        var allRevs = JSON.parse(localStorage.getItem("canteenReviews")) || [];
+        var reviews = allRevs.filter(function(r){ return r.canteen === canteen; });
+        var total   = reviews.length;
+        var sum     = reviews.reduce(function(a,r){ return a+(r.stars||0);},0);
+        var avg     = total ? (sum/total).toFixed(1) : "–";
+
+        var avgEl = document.getElementById("avgStars");
+        var barsEl = document.getElementById("ratingBars");
+        var totEl = document.getElementById("totalReviews");
+        if (avgEl) avgEl.textContent = avg;
+        if (totEl) totEl.textContent = total + " review" + (total===1?"":"s");
+        if (barsEl) {
+            var bars = "";
+            for (var s=5;s>=1;s--) {
+                var cnt = reviews.filter(function(r){return r.stars===s;}).length;
+                var pct = total ? Math.round(cnt/total*100) : 0;
+                bars += "<div style='display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:0.75rem'>" +
+                    "<span>" + s + "⭐</span>" +
+                    "<div style='flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden'>" +
+                        "<div style='height:100%;background:var(--amber);border-radius:4px;width:" + pct + "%'></div>" +
+                    "</div>" +
+                    "<span style='color:var(--muted);min-width:20px'>" + cnt + "</span>" +
+                "</div>";
+            }
+            barsEl.innerHTML = bars;
+        }
+
+        var listEl = document.getElementById("reviewsList");
+        if (!listEl) return;
+        if (!reviews.length) {
+            listEl.innerHTML = "<div class='empty'><span class='empty-icon'>💬</span><h3>No reviews yet</h3><p style='font-size:0.82rem;color:var(--muted)'>Reviews appear here when students rate their orders.</p></div>";
+            return;
+        }
+        listEl.innerHTML = reviews.slice(0,20).map(function(r,i){
+            var filled = "⭐".repeat(r.stars||0);
+            var empty  = "☆".repeat(5-(r.stars||0));
+            return "<div style='background:var(--white);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:12px;animation:fadeUp 0.35s ease both;animation-delay:"+(i*0.05)+"s;transition:background var(--transition)'>" +
+                "<div style='display:flex;justify-content:space-between;margin-bottom:6px'>" +
+                    "<span style='font-size:1rem'>" + filled + empty + "</span>" +
+                    "<span style='font-size:0.7rem;color:var(--muted)'>" + (r.date||"") + "</span>" +
+                "</div>" +
+                "<div style='font-size:0.85rem;font-weight:700;margin-bottom:2px'>👤 " + (r.customer||"Student") + "</div>" +
+                "<div style='font-size:0.75rem;color:var(--muted);margin-bottom:6px'>🍽 " + (r.items||"") + "</div>" +
+                (r.comment ? "<div style='font-size:0.83rem;font-style:italic;padding:8px 12px;background:var(--bg);border-radius:8px;border-left:3px solid var(--amber)'>" + r.comment + "</div>" : "") +
+            "</div>";
+        }).join("");
+    }
+
+</script>
+<script>
+
+    // ══ ADMIN ORDER BELL ════════════════════════════════════════
+    var bellOpen      = false;
+    var bellReadIds   = JSON.parse(localStorage.getItem("adminBellReadIds") || "[]");
+    var bellLastCount = 0;
+
+    function getBellOrders() {
+        return getMyOrders().slice().reverse().slice(0, 30);
+    }
+
+
+    let _bellDropHash = "";
+    function renderBellDrop() {
+        var orders  = getBellOrders();
+        var listEl  = document.getElementById("bellDropList");
+        if (!listEl) return;
+
+        // Hash guard — skip if nothing changed
+        var hash = orders.map(function(o){ return o.orderID + o.orderStatus + (bellReadIds.indexOf(o.orderID)===-1?"u":"r"); }).join(",");
+        if (hash === _bellDropHash) return;
+        _bellDropHash = hash;
+
+        if (!orders.length) {
+            listEl.innerHTML = "<div class='bell-empty'><div class='bell-empty-icon'>🛒</div><div style='font-size:0.82rem'>No orders yet</div></div>";
+            return;
+        }
+        listEl.innerHTML = orders.map(function(o, i) {
+            var isUnread = bellReadIds.indexOf(o.orderID) === -1;
+            var items    = (o.items||[]).map(function(it){ return it.name + " x" + it.quantity; }).join(", ") || "—";
+            var status   = o.orderStatus || "Pending";
+            var sColor   = status==="Ready" ? "var(--green)" : status==="Picked Up" ? "var(--muted)" : "var(--amber)";
+            return "<div class='bell-order-item" + (isUnread ? " unread" : "") + "' style='animation-delay:" + (i*0.04) + "s' onclick='goToOrders()'>" +
+                "<div class='bell-order-icon'>🛒</div>" +
+                "<div class='bell-order-body'>" +
+                    "<div class='bell-order-title'>New Order <span class='bell-token-tag'>Token #" + o.tokenNumber + "</span></div>" +
+                    "<div class='bell-order-sub'>" + items + "</div>" +
+                    "<div style='display:flex;justify-content:space-between;margin-top:3px'>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:" + sColor + "'>" + status + "</span>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:var(--pink)'>&#8377;" + o.total + "</span>" +
+                    "</div>" +
+                    "<div class='bell-order-time'>" + (o.date||"") + "</div>" +
+                "</div>" +
+            "</div>";
+        }).join("");
+    }
+
+    function goToOrders() { window.location.href = 'admin-orders.html'; }
+
+    function updateAdminBell() {
+        var orders  = getBellOrders();
+        var unread  = orders.filter(function(o){ return bellReadIds.indexOf(o.orderID)===-1; }).length;
+        var badge   = document.getElementById("adminBellBadge");
+        var btn     = document.getElementById("adminBellBtn");
+        var countEl = document.getElementById("bellUnreadCount");
+        if (badge)   { badge.textContent = unread>9?"9+":String(unread); badge.classList.toggle("show",unread>0); }
+        if (countEl) { countEl.textContent = unread>0 ? "("+unread+" new)" : ""; }
+        if (btn && unread > bellLastCount && unread > 0) {
+            btn.classList.remove("ringing"); void btn.offsetWidth;
+            btn.classList.add("ringing");
+            setTimeout(function(){ btn.classList.remove("ringing"); }, 600);
+        }
+        bellLastCount = unread;
+        if (bellOpen) renderBellDrop();
+    }
+
+    function clearBellOrders() {
+        getBellOrders().forEach(function(o){ if(bellReadIds.indexOf(o.orderID)===-1) bellReadIds.push(o.orderID); });
+        localStorage.setItem("adminBellReadIds", JSON.stringify(bellReadIds));
+        _bellDropHash = ""; // force re-render
+        updateAdminBell(); renderBellDrop();
+    }
+
+    document.addEventListener("click", function(e) {
+        var wrap = document.getElementById("adminBellWrap");
+        var drop = document.getElementById("adminBellDropdown");
+        if (!drop) return;
+        if (wrap && wrap.contains(e.target)) {
+            bellOpen = !bellOpen;
+            drop.classList.toggle("open", bellOpen);
+            if (bellOpen) { renderBellDrop(); clearBellOrders(); }
+        } else { bellOpen=false; drop.classList.remove("open"); }
+    });
+
+    updateAdminBell();
+    setInterval(updateAdminBell, 2000);
+
+</script>
+</body>
+</html>

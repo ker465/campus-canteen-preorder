@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reviews · Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        .reviews-grid { display:grid; grid-template-columns:260px 1fr; gap:24px; }
+        
+        /* Summary card */
+        .summary-card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; position:sticky; top:84px; height:fit-content; transition:background var(--transition); }
+        .avg-score { font-size:3.5rem; font-weight:800; color:var(--amber); line-height:1; margin-bottom:4px; }
+        .avg-label { font-size:0.78rem; color:var(--muted); font-weight:600; margin-bottom:18px; }
+        .stars-big { font-size:1.4rem; margin-bottom:16px; }
+        .total-label { font-size:0.75rem; color:var(--muted); font-weight:600; }
+
+        /* Rating bars */
+        .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:7px; font-size:0.78rem; }
+        .bar-label { width:18px; text-align:right; font-weight:700; }
+        .bar-bg    { flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+        .bar-fill  { height:100%; background:var(--amber); border-radius:4px; transition:width 0.6s cubic-bezier(0.4,0,0.2,1); }
+        .bar-count { width:20px; color:var(--muted); font-weight:600; }
+
+        /* Filter pills */
+        .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+
+        /* Review cards */
+        .review-card {
+            background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow);
+            padding:20px 22px; margin-bottom:14px;
+            animation:fadeUp 0.35s ease both;
+            transition:all 0.25s cubic-bezier(0.4,0,0.2,1), background var(--transition);
+        }
+        .review-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
+
+        .rv-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px; }
+        .rv-stars { font-size:1.1rem; letter-spacing:1px; }
+        .rv-date  { font-size:0.7rem; color:var(--muted); margin-top:2px; }
+        .rv-customer { font-size:0.9rem; font-weight:700; margin-bottom:3px; display:flex; align-items:center; gap:7px; }
+        .rv-items    { font-size:0.75rem; color:var(--muted); margin-bottom:10px; }
+        .rv-comment  {
+            font-size:0.85rem; font-style:italic; padding:10px 14px;
+            background:var(--bg); border-radius:10px;
+            border-left:3px solid var(--amber); color:var(--text); line-height:1.5;
+            transition:background var(--transition);
+        }
+        .rv-token { font-size:0.68rem; font-weight:700; padding:2px 8px; border-radius:10px; background:var(--pink-light); color:var(--pink2); }
+
+        /* Star color by rating */
+        .stars-5 { color:#f5a623; }
+        .stars-4 { color:#7cc576; }
+        .stars-3 { color:#5b8dee; }
+        .stars-2 { color:#ff9800; }
+        .stars-1 { color:#ef5350; }
+
+        .empty-reviews { text-align:center; padding:60px 24px; color:var(--muted); }
+        .empty-reviews .empty-icon { font-size:3rem; margin-bottom:12px; display:block; }
+
+        @media(max-width:900px){ .reviews-grid{grid-template-columns:1fr;} .summary-card{position:static;} }
+    
+        .review-search-wrap {
+            position: relative;
+            flex: 1;
+            max-width: 320px;
+        }
+        .review-search-wrap .search-icon {
+            position: absolute; left: 12px; top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.9rem; pointer-events: none; opacity: 0.5;
+        }
+        .review-search-input {
+            width: 100%;
+            background: var(--white); border: 1.5px solid var(--border);
+            color: var(--text); font-family: Nunito, sans-serif;
+            font-size: 0.85rem; font-weight: 500;
+            padding: 9px 12px 9px 34px;
+            border-radius: 12px; outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .review-search-input:focus {
+            border-color: var(--amber);
+            box-shadow: 0 0 0 3px var(--amber-glow);
+        }
+        .review-search-input::placeholder { color: var(--muted); }
+
+        .search-clear {
+            position: absolute; right: 10px; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none; color: var(--muted);
+            cursor: pointer; font-size: 0.9rem; padding: 2px;
+            display: none;
+        }
+        .review-search-input:not(:placeholder-shown) ~ .search-clear { display: block; }
+
+        .search-tag {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.72rem; font-weight: 700;
+            padding: 3px 10px; border-radius: 20px;
+            background: rgba(245,166,35,0.15); color: var(--amber);
+            border: 1px solid rgba(245,166,35,0.3);
+            margin-bottom: 12px;
+        }
+        .search-tag button {
+            background: none; border: none; color: var(--amber);
+            cursor: pointer; font-size: 0.8rem; padding: 0 0 0 4px;
+            line-height: 1;
+        }
+        .highlight {
+            background: rgba(245,166,35,0.2);
+            border-radius: 3px;
+            padding: 0 2px;
+        }
+
+
+        /* ══ HALF STAR DISPLAY ══ */
+        .star-display { display:inline-flex; gap:1px; font-size:inherit; }
+        .star-display span {
+            display:inline-block;
+            position:relative;
+            color:#ccc;
+            font-style:normal;
+        }
+        .star-display span.full  { color:#f5a623; }
+        .star-display span.half::after {
+            content: '★';
+            position:absolute; left:0; top:0; width:50%; overflow:hidden;
+            color:#f5a623;
+        }
+
+        /* ══ SORT BUTTONS ══ */
+        .sort-wrap { display:flex; align-items:center; gap:6px; }
+        .sort-label { font-size:0.72rem; font-weight:700; color:var(--muted); white-space:nowrap; }
+        .sort-btn {
+            font-size:0.75rem; font-weight:700;
+            padding:5px 12px; border-radius:20px;
+            border: 1.5px solid var(--border);
+            background: var(--white); color:var(--muted);
+            cursor:pointer; font-family:Nunito,sans-serif;
+            transition:all 0.2s;
+        }
+        .sort-btn:hover { border-color:var(--amber); color:var(--text); }
+        .sort-btn.active {
+            background:var(--amber); border-color:var(--amber);
+            color:#0f0d0b; box-shadow:0 2px 10px rgba(245,166,35,0.3);
+        }
+        </style>
+</head>
+<body>
+<script>(function(){if(localStorage.getItem("adminTheme")==="dark")document.body.classList.add("dark");})()</script>
+<script src="admin.js"></script>
+<script>if(!localStorage.getItem("adminCanteen")) window.location.href="admin-login.html";</script>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-circle" id="sidebarIcon">🍽</div>
+        <div>
+            <div class="logo-name" id="sidebarName">Canteen</div>
+            <div class="logo-sub">Admin Panel</div>
+        </div>
+    </div>
+    <div class="nav-section">Main</div>
+    <a class="nav-link" href="admin-dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a class="nav-link" href="admin-orders.html"><span class="nav-icon">🧾</span> Orders</a>
+    <a class="nav-link" href="admin-menu.html"><span class="nav-icon">🍽</span> Menu</a>
+    <a class="nav-link" href="admin-schedule.html"><span class="nav-icon">🕐</span> Schedule</a>
+    <div class="nav-section">Reports</div>
+    <a class="nav-link" href="admin-customers.html"><span class="nav-icon">👥</span> Customers</a>
+    <a class="nav-link active" href="admin-reviews.html"><span class="nav-icon">⭐</span> Reviews</a>
+    <div class="sidebar-footer">
+        <button class="logout-nav" onclick="adminLogout()"><span>🚪</span> Log out</button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Reviews</h1>
+            <p>What students are saying about your canteen</p>
+        </div>
+        <div class="topbar-right">
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span class="icon-sun">☀️</span>
+                <span class="icon-moon">🌙</span>
+            </button>
+            <span id="canteenBadge" style="font-size:0.75rem;font-weight:700;padding:5px 14px;border-radius:20px;background:var(--pink-light);color:var(--pink2)"></span>
+<div class="admin-bell-wrap" id="adminBellWrap">
+                <button class="admin-bell-btn" id="adminBellBtn" title="New Orders">
+                    🔔
+                    <div class="admin-bell-badge" id="adminBellBadge">0</div>
+                </button>
+                <div class="admin-bell-dropdown" id="adminBellDropdown">
+                    <div class="bell-drop-header">
+                        <div class="bell-drop-title">🛒 Incoming Orders <span id="bellUnreadCount" style="font-size:0.72rem;color:var(--muted);font-weight:600"></span></div>
+                        <button class="bell-clear-btn" onclick="clearBellOrders()">Mark all read</button>
+                    </div>
+                    <div class="bell-drop-list" id="bellDropList"></div>
+                    <div class="bell-drop-footer"><a href="admin-orders.html">View all orders →</a></div>
+                </div>
+            </div>
+            <div class="admin-pill">
+                <div class="admin-avatar">A</div>
+                <div>
+                    <div class="admin-name" id="adminNameLabel">Admin</div>
+                    <div class="admin-role">Manager</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-content">
+
+        <!-- Filter bar + Search -->
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+            <div class="filter-row" id="filterRow" style="margin-bottom:0;flex:1">
+                <button class="filter-pill active" data-val="0" onclick="setStarFilter(0,this)">All</button>
+                <button class="filter-pill" data-val="5" onclick="setStarFilter(5,this)">⭐⭐⭐⭐⭐ 5</button>
+                <button class="filter-pill" data-val="4" onclick="setStarFilter(4,this)">⭐⭐⭐⭐ 4</button>
+                <button class="filter-pill" data-val="3" onclick="setStarFilter(3,this)">⭐⭐⭐ 3</button>
+                <button class="filter-pill" data-val="2" onclick="setStarFilter(2,this)">⭐⭐ 2</button>
+                <button class="filter-pill" data-val="1" onclick="setStarFilter(1,this)">⭐ 1</button>
+            </div>
+            <div class="review-search-wrap">
+                <span class="search-icon">🔍</span>
+                <input class="review-search-input" id="reviewSearch"
+                    type="text" placeholder="Search by food item..."
+                    oninput="onSearchInput(this.value)">
+                <button class="search-clear" onclick="clearSearch()" title="Clear">✕</button>
+            </div>
+        </div>
+        <!-- Active search tag -->
+        <div id="searchTagWrap" style="display:none">
+            <div class="search-tag">
+                🔍 Showing reviews for: <strong id="searchTagText"></strong>
+                <button onclick="clearSearch()">✕</button>
+            </div>
+        </div>
+
+        <!-- Sort controls -->
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:16px">
+            <span class="sort-label">Sort by:</span>
+            <div class="sort-wrap">
+                <button class="sort-btn active" id="sortLatest" onclick="setSort('latest',this)">🕐 Latest</button>
+                <button class="sort-btn"          id="sortHighest" onclick="setSort('highest',this)">⭐ Highest</button>
+                <button class="sort-btn"          id="sortLowest"  onclick="setSort('lowest',this)">👎 Lowest</button>
+            </div>
+        </div>
+
+        <div class="reviews-grid">
+
+            <!-- LEFT: Summary -->
+            <div class="summary-card">
+                <div class="avg-score" id="avgScore">–</div>
+                <div class="avg-label">out of 5.0</div>
+                <div class="stars-big" id="avgStarDisplay">☆☆☆☆☆</div>
+                <div class="total-label" id="totalLabel">0 reviews</div>
+
+                <div style="margin:20px 0 4px;font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em">Breakdown</div>
+                <div id="barChart"></div>
+
+                <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+                    <div style="font-size:0.75rem;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.08em">Sentiment</div>
+                    <div id="sentimentBox"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Review cards -->
+            <div>
+                <div id="reviewCards"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="adminToast">
+    <span id="toastIcon">✅</span>
+    <span id="toastMsg"></span>
+</div>
+
+<script>
+    const adminCanteen = localStorage.getItem("adminCanteen") || "MRC";
+
+    // ── Patch old reviews that have empty canteen field ──
+    (function patchReviews() {
+        var revs    = JSON.parse(localStorage.getItem("canteenReviews")) || [];
+        var orders  = JSON.parse(localStorage.getItem("orders")) || [];
+        var changed = false;
+        revs.forEach(function(r) {
+            if (!r.canteen) {
+                // Try to find matching order
+                var order = orders.find(function(o){ return o.orderID === r.orderID; });
+                r.canteen = (order && order.canteen) ? order.canteen : adminCanteen;
+                changed = true;
+            }
+        });
+        if (changed) localStorage.setItem("canteenReviews", JSON.stringify(revs));
+    })();
+    let starFilter  = 0;
+    let itemSearch  = "";
+    let sortOrder   = "latest";
+
+    // Branding
+    (function(){
+        var map = { MRC:{name:"MRC Canteen",icon:"🏫"}, Khuksi:{name:"Khuksi Corner",icon:"🍜"} };
+        var L   = map[adminCanteen] || {name:adminCanteen, icon:"🍽"};
+        var b   = document.getElementById("canteenBadge");     if(b)  b.textContent  = L.icon+" "+L.name;
+        var sn  = document.getElementById("sidebarName");       if(sn) sn.textContent = L.name;
+        var si  = document.getElementById("sidebarIcon");       if(si) si.textContent = L.icon;
+        var an  = document.getElementById("adminNameLabel");    if(an) an.textContent = adminCanteen+" Admin";
+    })();
+
+    function setStarFilter(val, btn) {
+        starFilter = val;
+        document.querySelectorAll(".filter-pill").forEach(function(b){ b.classList.remove("active"); });
+        btn.classList.add("active");
+        render();
+    }
+
+    function setSort(val, btn) {
+        sortOrder = val;
+        document.querySelectorAll(".sort-btn").forEach(function(b){ b.classList.remove("active"); });
+        btn.classList.add("active");
+        _lastRenderHash = ""; // force re-render
+        render();
+    }
+
+    // ── Render stars with half-star support ──────────────────
+    function renderStars(rating, size) {
+        size = size || "1rem";
+        var html = "<span class='star-display' style='font-size:" + size + "'>";
+        for (var i = 1; i <= 5; i++) {
+            if (rating >= i) {
+                html += "<span class='full'>★</span>";
+            } else if (rating >= i - 0.5) {
+                html += "<span class='half'>★</span>";
+            } else {
+                html += "<span>★</span>";
+            }
+        }
+        return html + "</span>";
+    }
+
+    function getStars(n, cls) {
+        return "<span class='" + (cls||"") + "'>" + "⭐".repeat(n) + "☆".repeat(5-n) + "</span>";
+    }
+
+    let searchTimeout;
+
+    function onSearchInput(val) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            itemSearch = val.trim().toLowerCase();
+            var tagWrap = document.getElementById("searchTagWrap");
+            var tagText = document.getElementById("searchTagText");
+            if (itemSearch) {
+                tagWrap.style.display = "block";
+                tagText.textContent   = val.trim();
+            } else {
+                tagWrap.style.display = "none";
+            }
+            _lastRenderHash = ""; // force re-render after debounce
+            render();
+        }, 300);
+    }
+
+    function clearSearch() {
+        itemSearch = "";
+        document.getElementById("reviewSearch").value = "";
+        document.getElementById("searchTagWrap").style.display = "none";
+        render();
+    }
+
+    function highlightText(text, query) {
+        if (!query) return text;
+        var re  = new RegExp("(" + query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi");
+        return text.replace(re, "<span class='highlight'>$1</span>");
+    }
+
+    function updateSummaryPanel(sourceReviews) {
+        var total  = sourceReviews.length;
+        var sum    = sourceReviews.reduce(function(a,r){ return a+(r.stars||0); }, 0);
+        var avg    = total ? (sum/total) : 0;
+        var avgStr = total ? avg.toFixed(1) : "–";
+
+        document.getElementById("avgScore").textContent  = avgStr;
+        document.getElementById("totalLabel").textContent =
+            total + " review" + (total===1?"":"s") +
+            (itemSearch ? " for \"" + itemSearch + "\"" : "");
+
+        var fullStars = Math.round(avg);
+        document.getElementById("avgStarDisplay").innerHTML = renderStars(avg, "1.4rem");
+
+        var bars = "";
+        for (var s=5; s>=1; s--) {
+            var cnt = sourceReviews.filter(function(r){ return r.stars===s; }).length;
+            var pct = total ? Math.round(cnt/total*100) : 0;
+            bars += "<div class='bar-row'>" +
+                "<div class='bar-label'>" + s + "</div>" +
+                "<div class='bar-bg'><div class='bar-fill' style='width:" + pct + "%'></div></div>" +
+                "<div class='bar-count'>" + cnt + "</div>" +
+            "</div>";
+        }
+        document.getElementById("barChart").innerHTML = bars;
+
+        var pos    = sourceReviews.filter(function(r){ return r.stars>=4; }).length;
+        var neu    = sourceReviews.filter(function(r){ return r.stars===3; }).length;
+        var neg    = sourceReviews.filter(function(r){ return r.stars<=2; }).length;
+        var posPct = total ? Math.round(pos/total*100) : 0;
+        document.getElementById("sentimentBox").innerHTML =
+            "<div style='display:flex;gap:6px;margin-bottom:8px'>" +
+                "<div style='flex:" + (pos||0) + ";height:8px;background:var(--green);border-radius:4px;min-width:" + (pos?4:0) + "px'></div>" +
+                "<div style='flex:" + (neu||0) + ";height:8px;background:var(--amber);border-radius:4px;min-width:" + (neu?4:0) + "px'></div>" +
+                "<div style='flex:" + (neg||0) + ";height:8px;background:var(--red);border-radius:4px;min-width:" + (neg?4:0) + "px'></div>" +
+            "</div>" +
+            "<div style='font-size:0.72rem;color:var(--muted);display:flex;justify-content:space-between'>" +
+                "<span style='color:var(--green);font-weight:700'>" + posPct + "% Positive</span>" +
+                "<span>" + neu + " Neutral</span>" +
+                "<span style='color:var(--red)'>" + neg + " Critical</span>" +
+            "</div>";
+
+        // Food item label in summary panel
+        var labelEl = document.getElementById("summaryItemLabel");
+        if (!labelEl) {
+            var sc = document.querySelector(".summary-card");
+            if (sc) {
+                labelEl = document.createElement("div");
+                labelEl.id = "summaryItemLabel";
+                labelEl.style.cssText = "margin-bottom:12px;min-height:22px";
+                sc.insertBefore(labelEl, sc.firstChild);
+            }
+        }
+        if (labelEl) {
+            labelEl.innerHTML = itemSearch
+                ? "<div style='font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px'>Item</div>" +
+                  "<div style='font-size:0.88rem;font-weight:800;color:var(--amber)'>" + itemSearch + "</div>"
+                : "";
+        }
+    }
+
+    var _lastRenderHash = "";
+
+    function render() {
+        var all     = JSON.parse(localStorage.getItem("canteenReviews")) || [];
+        var reviews = all.filter(function(r) {
+            if (!r.canteen) return true;
+            return r.canteen === adminCanteen ||
+                   r.canteen.toLowerCase() === adminCanteen.toLowerCase();
+        });
+
+        // Single filtered set used for BOTH summary panel and cards
+        var filtered = reviews;
+
+        if (starFilter > 0) {
+            filtered = filtered.filter(function(r){ return r.stars === starFilter; });
+        }
+
+        if (itemSearch) {
+            filtered = filtered.filter(function(r) {
+                return (r.itemName||"").toLowerCase().includes(itemSearch) ||
+                       (r.items   ||"").toLowerCase().includes(itemSearch) ||
+                       (r.comment ||"").toLowerCase().includes(itemSearch);
+            });
+        }
+
+        // Only re-render if data actually changed — prevents flickering
+        var newHash = JSON.stringify(filtered.map(function(r){
+            return r.orderID + (r.stars||0) + (r.comment||"") + (r.items||"");
+        })) + starFilter + itemSearch;
+        if (newHash === _lastRenderHash) return;
+        _lastRenderHash = newHash;
+
+        // Apply sort
+        filtered = filtered.slice().sort(function(a, b) {
+            if (sortOrder === "highest") return (b.stars||0) - (a.stars||0);
+            if (sortOrder === "lowest")  return (a.stars||0) - (b.stars||0);
+            // latest: newest first (by id or date)
+            return (b.id || 0) - (a.id || 0);
+        });
+
+        // Summary panel always reflects what's shown in cards
+        updateSummaryPanel(filtered);
+
+
+        var cardsEl = document.getElementById("reviewCards");
+        if (!filtered.length) {
+            var totalAll = reviews.length;
+            var emptyTitle = totalAll===0 ? "No reviews yet"
+                : itemSearch  ? "No reviews found for \"" + itemSearch + "\""
+                : "No " + starFilter + "-star reviews";
+            var emptySub  = totalAll===0 ? "Reviews will appear here when students rate their orders."
+                : itemSearch  ? "Try a different item name or clear the search."
+                : "Try a different star filter.";
+            cardsEl.innerHTML =
+                "<div class='empty-reviews'>" +
+                    "<span class='empty-icon'>" + (totalAll===0?"💬":"🔍") + "</span>" +
+                    "<h3 style='font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px'>" + emptyTitle + "</h3>" +
+                    "<p style='font-size:0.82rem'>" + emptySub + "</p>" +
+                "</div>";
+            return;
+        }
+
+        cardsEl.innerHTML = filtered.map(function(r, i) {
+            var starCls  = "stars-" + (r.stars||0);
+            var itemDisp = r.itemName || r.items || "—";  // per-item name preferred
+            return "<div class='review-card' style='animation-delay:" + (i*0.05) + "s'>" +
+                "<div class='rv-top'>" +
+                    "<div>" +
+                        "<div class='rv-stars " + starCls + "'>" + renderStars(r.stars||0, "1.1rem") + "</div>" +
+                        "<div class='rv-date'>" + (r.date||"") + "</div>" +
+                    "</div>" +
+                    "<span class='rv-token'>Token #" + (r.orderID||"").replace("ORD-","") + "</span>" +
+                "</div>" +
+                // Item name as prominent tag
+                "<div style='display:inline-flex;align-items:center;gap:6px;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.2);border-radius:20px;padding:3px 12px;margin-bottom:8px'>" +
+                    "<span style='font-size:0.88rem'>🍽</span>" +
+                    "<span style='font-size:0.82rem;font-weight:800;color:var(--amber)'>" + highlightText(itemDisp, itemSearch) + "</span>" +
+                "</div><br>" +
+                "<div class='rv-customer'>👤 " + (r.customer||"Student") + "</div>" +
+                (r.comment
+                    ? "<div class='rv-comment'>" + highlightText(r.comment, itemSearch) + "</div>"
+                    : "<div style='font-size:0.75rem;color:var(--muted);font-style:italic'>No written comment</div>"
+                ) +
+            "</div>";
+        }).join("");
+    }
+
+    render();
+    setInterval(render, 3000); // live updates
+</script>
+
+<script>
+function toggleTheme() {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("adminTheme", document.body.classList.contains("dark") ? "dark" : "light");
+}
+</script>
+<script>
+
+    // ══ ADMIN ORDER BELL ════════════════════════════════════════
+    var bellOpen      = false;
+    var bellReadIds   = JSON.parse(localStorage.getItem("adminBellReadIds") || "[]");
+    var bellLastCount = 0;
+
+    function getBellOrders() {
+        return getMyOrders().slice().reverse().slice(0, 30);
+    }
+
+
+    let _bellDropHash = "";
+    function renderBellDrop() {
+        var orders  = getBellOrders();
+        var listEl  = document.getElementById("bellDropList");
+        if (!listEl) return;
+
+        // Hash guard — skip if nothing changed
+        var hash = orders.map(function(o){ return o.orderID + o.orderStatus + (bellReadIds.indexOf(o.orderID)===-1?"u":"r"); }).join(",");
+        if (hash === _bellDropHash) return;
+        _bellDropHash = hash;
+
+        if (!orders.length) {
+            listEl.innerHTML = "<div class='bell-empty'><div class='bell-empty-icon'>🛒</div><div style='font-size:0.82rem'>No orders yet</div></div>";
+            return;
+        }
+        listEl.innerHTML = orders.map(function(o, i) {
+            var isUnread = bellReadIds.indexOf(o.orderID) === -1;
+            var items    = (o.items||[]).map(function(it){ return it.name + " x" + it.quantity; }).join(", ") || "—";
+            var status   = o.orderStatus || "Pending";
+            var sColor   = status==="Ready" ? "var(--green)" : status==="Picked Up" ? "var(--muted)" : "var(--amber)";
+            return "<div class='bell-order-item" + (isUnread ? " unread" : "") + "' style='animation-delay:" + (i*0.04) + "s' onclick='goToOrders()'>" +
+                "<div class='bell-order-icon'>🛒</div>" +
+                "<div class='bell-order-body'>" +
+                    "<div class='bell-order-title'>New Order <span class='bell-token-tag'>Token #" + o.tokenNumber + "</span></div>" +
+                    "<div class='bell-order-sub'>" + items + "</div>" +
+                    "<div style='display:flex;justify-content:space-between;margin-top:3px'>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:" + sColor + "'>" + status + "</span>" +
+                        "<span style='font-size:0.72rem;font-weight:700;color:var(--pink)'>&#8377;" + o.total + "</span>" +
+                    "</div>" +
+                    "<div class='bell-order-time'>" + (o.date||"") + "</div>" +
+                "</div>" +
+            "</div>";
+        }).join("");
+    }
+
+    function goToOrders() { window.location.href = 'admin-orders.html'; }
+
+    function updateAdminBell() {
+        var orders  = getBellOrders();
+        var unread  = orders.filter(function(o){ return bellReadIds.indexOf(o.orderID)===-1; }).length;
+        var badge   = document.getElementById("adminBellBadge");
+        var btn     = document.getElementById("adminBellBtn");
+        var countEl = document.getElementById("bellUnreadCount");
+        if (badge)   { badge.textContent = unread>9?"9+":String(unread); badge.classList.toggle("show",unread>0); }
+        if (countEl) { countEl.textContent = unread>0 ? "("+unread+" new)" : ""; }
+        if (btn && unread > bellLastCount && unread > 0) {
+            btn.classList.remove("ringing"); void btn.offsetWidth;
+            btn.classList.add("ringing");
+            setTimeout(function(){ btn.classList.remove("ringing"); }, 600);
+        }
+        bellLastCount = unread;
+        if (bellOpen) renderBellDrop();
+    }
+
+    function clearBellOrders() {
+        getBellOrders().forEach(function(o){ if(bellReadIds.indexOf(o.orderID)===-1) bellReadIds.push(o.orderID); });
+        localStorage.setItem("adminBellReadIds", JSON.stringify(bellReadIds));
+        _bellDropHash = ""; // force re-render
+        updateAdminBell(); renderBellDrop();
+    }
+
+    document.addEventListener("click", function(e) {
+        var wrap = document.getElementById("adminBellWrap");
+        var drop = document.getElementById("adminBellDropdown");
+        if (!drop) return;
+        if (wrap && wrap.contains(e.target)) {
+            bellOpen = !bellOpen;
+            drop.classList.toggle("open", bellOpen);
+            if (bellOpen) { renderBellDrop(); clearBellOrders(); }
+        } else { bellOpen=false; drop.classList.remove("open"); }
+    });
+
+    updateAdminBell();
+    setInterval(updateAdminBell, 2000);
+
+</script>
+</body>
+</html>
