@@ -181,7 +181,12 @@ document.addEventListener("DOMContentLoaded", function() {
         link.classList.toggle("active", link.getAttribute("href") === page);
     });
 
-    // Run badge immediately + keep it live every 3 seconds on all pages
-    updateSidebarBadge();
-    setInterval(updateSidebarBadge, 3000);
+    // Small delay ensures sidebar HTML is fully rendered before badge update
+    // This fixes pages where <script src="admin.js"> loads before sidebar HTML
+    setTimeout(function() {
+        updateSidebarBadge();
+    }, 100);
+
+    // Keep badge live every 2 seconds on all pages
+    setInterval(updateSidebarBadge, 2000);
 });
