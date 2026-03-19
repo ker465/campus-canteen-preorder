@@ -180,13 +180,24 @@ document.addEventListener("DOMContentLoaded", function() {
     document.querySelectorAll(".nav-link[href]").forEach(function(link) {
         link.classList.toggle("active", link.getAttribute("href") === page);
     });
-
-    // Small delay ensures sidebar HTML is fully rendered before badge update
-    // This fixes pages where <script src="admin.js"> loads before sidebar HTML
-    setTimeout(function() {
-        updateSidebarBadge();
-    }, 100);
-
-    // Keep badge live every 2 seconds on all pages
-    setInterval(updateSidebarBadge, 2000);
 });
+
+// ── SIDEBAR BADGE BOOTSTRAP ───────────────────
+// admin.js loads BEFORE the sidebar HTML exists on most pages.
+// We poll every 100ms until #pendingBadge appears, then start the live interval.
+(function bootBadge() {
+    var attempts = 0;
+    var maxAttempts = 100; // give up after 10 seconds
+    function tryBadge() {
+        attempts++;
+        var pb = document.getElementById("pendingBadge");
+        if (pb) {
+            // Element found — update now and keep it live
+            updateSidebarBadge();
+            setInterval(updateSidebarBadge, 2000);
+        } else if (attempts < maxAttempts) {
+            setTimeout(tryBadge, 100);
+        }
+    }
+    setTimeout(tryBadge, 50);
+})();
