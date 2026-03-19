@@ -73,7 +73,19 @@
 <body>
 <script>(function(){if(localStorage.getItem("adminTheme")==="dark")document.body.classList.add("dark");})()</script>
 <script src="admin.js"></script>
-<script src="../schedule.js"></script>
+<script>
+(function(){
+    var paths=["../schedule_new.js","../customer/schedule_new.js","schedule_new.js"];
+    function tryNext(i){
+        if(i>=paths.length) return;
+        var s=document.createElement("script");
+        s.src=paths[i];
+        s.onerror=function(){ tryNext(i+1); };
+        document.head.appendChild(s);
+    }
+    tryNext(0);
+})();
+</script>
 <script>if(!localStorage.getItem("adminCanteen")) window.location.href="admin-login.html";</script>
 
 

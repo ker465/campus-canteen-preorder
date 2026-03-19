@@ -315,9 +315,92 @@ gap:12px; padding:4px 18px 18px;
 100%{ background-position:200% center }
 }
 </style>
-<script src="auth.js"></script>
-<script src="schedule_new.js"></script>
-<script src="script.js"></script>
+<script>
+// Try to load schedule.js from multiple locations
+(function() {
+    var paths = ["schedule_new.js", "../schedule_new.js", "./schedule_new.js"];
+    var loaded = false;
+    function tryNext(i) {
+        if (i >= paths.length) return;
+        var s = document.createElement("script");
+        s.src = paths[i];
+        s.onload = function() { loaded = true; };
+        s.onerror = function() { tryNext(i + 1); };
+        document.head.appendChild(s);
+    }
+    tryNext(0);
+})();
+</script>
+<script>
+// Inline fallback — defines all schedule functions if schedule.js fails to load
+window.addEventListener("DOMContentLoaded", function() {
+    if (typeof getCurrentSession !== "undefined") return; // already loaded
+    // Minimal inline schedule
+    function _loadSched() {
+        try { var s = localStorage.getItem("canteenSchedule"); if(s) return JSON.parse(s); } catch(e){}
+        return {
+            breakfast:{start:8,startMin:0,end:11,endMin:0,label:"Breakfast",emoji:"🌅",enabled:true},
+            lunch:    {start:12,startMin:0,end:15,endMin:0,label:"Lunch",    emoji:"🍱",enabled:true},
+            snacks:   {start:16,startMin:0,end:19,endMin:0,label:"Snacks",   emoji:"🍿",enabled:true},
+            dinner:   {start:19,startMin:0,end:24,endMin:0,label:"Dinner",   emoji:"🌙",enabled:true}
+        };
+    }
+    window.canteenSchedule = _loadSched();
+    window.getCurrentSession = function() {
+        window.canteenSchedule = _loadSched();
+        var can = localStorage.getItem("selectedCanteen") || "MRC";
+        var ov  = localStorage.getItem("canteenOverride_" + can);
+        if (ov === "closed") return "closed";
+        var now = new Date(), cur = now.getHours() + now.getMinutes()/60;
+        for (var k in canteenSchedule) {
+            var s = canteenSchedule[k];
+            if (!s || !s.enabled) continue;
+            var sh = s.start + (s.startMin||0)/60, eh = s.end + (s.endMin||0)/60;
+            if (cur >= sh && cur < eh) return k;
+        }
+        if (ov === "open") return "manual_open";
+        return "closed";
+    };
+    window.getNextSession = function() {
+        window.canteenSchedule = _loadSched();
+        var cur = new Date().getHours() + new Date().getMinutes()/60;
+        for (var k in canteenSchedule) {
+            var s = canteenSchedule[k];
+            if (s && s.enabled && (s.start + (s.startMin||0)/60) > cur) return Object.assign({key:k},s);
+        }
+        return null;
+    };
+    window.getMinutesLeft = function() {
+        var sk = getCurrentSession();
+        if (sk === "closed" || sk === "manual_open") return sk === "manual_open" ? 999 : 0;
+        window.canteenSchedule = _loadSched();
+        var s = canteenSchedule[sk]; if (!s) return 0;
+        var end = new Date(); end.setHours(s.end, s.endMin||0, 0, 0);
+        return Math.max(0, Math.floor((end - new Date()) / 60000));
+    };
+    window.fmtHour = function(h, m) {
+        m = m||0;
+        var p = h < 12 ? "AM" : "PM", d = h > 12 ? h-12 : (h===0?12:h);
+        return d + ":" + String(m).padStart(2,"0") + " " + p;
+    };
+    window.getAvailableSlots = function(sessionKey) {
+        window.canteenSchedule = _loadSched();
+        var s = canteenSchedule[sessionKey]; if (!s) return [];
+        var slots = [], now = new Date(), cur = now.getHours()*60 + now.getMinutes();
+        for (var h = s.start; h <= s.end; h++) {
+            var mStart = (h === s.start) ? (s.startMin||0) : 0;
+            var mEnd   = (h === s.end)   ? (s.endMin||0)   : 50;
+            for (var m = mStart; m <= mEnd; m += 10) {
+                var totalMin = h*60+m;
+                if (totalMin <= cur) continue;
+                var hd = h===24?0:h, p = hd<12?"AM":"PM", d = hd>12?hd-12:(hd===0?12:hd);
+                slots.push(d+":"+String(m).padStart(2,"0")+" "+p);
+            }
+        }
+        return slots;
+    };
+});
+</script>
 </head>
 
 <body>
@@ -382,7 +465,7 @@ const user=JSON.parse(localStorage.getItem("user"));
 
 <script>
 function applySession(){
-    const session= localStorage.getItem("activeSession") || "closed";
+    const session=getCurrentSession();
     const banner=document.getElementById("sessionBanner");
     const overlay=document.getElementById("closedOverlay");
     const cartPanel=document.querySelector(".cart-panel");
@@ -715,6 +798,6 @@ function logout(){
 }
 </script>
 
-<script src="noti.js"></script>
+<script src="notif.js"></script>
 </body>
 </html>
