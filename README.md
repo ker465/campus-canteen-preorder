@@ -1,90 +1,97 @@
-# 🍽 Campus Canteen Pre-Ordering System
+# 🍽️ Campus Canteen Pre-Ordering System
 
-A web-based system that allows students to **pre-order food from campus canteens**, pay online via **QR payment**, and receive a **token number for pickup**.
+A modern web-based system that allows students to pre-order food from campus canteens, pay online via QR, and receive a token for pickup.
 
-This reduces waiting time and improves canteen efficiency.
-
----
-
-## Live Demo
-
-https://ker465.github.io/campus-canteen-preorder/login.html
+🚀 Reduces waiting time and improves canteen efficiency.
 
 ---
 
-## Features
+## 🔗 Live Demo
 
-- Student **Login & Signup**
-- Choose between multiple **canteens**
-- Browse **menu items**
-- Add items to **cart**
-- **QR Code Payment**
-- **Cash on Pickup option**
-- **Token based pickup system**
-- **Order history tracking**
-- Clean **modern UI**
+* 👨‍🎓 **Customer App:**
+  https://ker465.github.io/campus-canteen-preorder/customer/login.html
+
+* 🧑‍🍳 **Admin Panel:**
+  https://ker465.github.io/campus-canteen-preorder/admin/admin-login.html
 
 ---
 
-## Technologies Used
+## ✨ Features
 
-- HTML
-- CSS
-- JavaScript
-- LocalStorage
-- QR Code API
-- GitHub Pages (Deployment)
+### 👨‍🎓 Customer Side
+
+* Student Login & Signup
+* Browse Menu by Categories (Breakfast, Lunch, Snacks, etc.)
+* Add to Cart & Place Order
+* Select Pickup Time Slot
+* QR Code Payment / Cash Option
+* Token-based Order Pickup
+* Order History Tracking
+* Review & Rating System ⭐
 
 ---
 
-##  Project Structure
+### 🧑‍🍳 Admin Panel
+
+* Dashboard Overview
+* Manage Menu Items
+* View & Update Orders (Preparing → Ready → Delivered)
+* Customer Insights
+* Review & Rating Analytics
+* Order Priority System (Time + Token Based)
+
+---
+
+## 🧠 Unique Features
+
+* ⏱️ **Smart Order Priority System**
+  Orders are managed based on pickup time and token number
+
+* ⭐ **Auto Review System**
+  Users are prompted to rate items after pickup
+
+* 🕒 **Time-based Menu Display**
+  Breakfast / Lunch / Snacks shown dynamically
+
+---
+
+## 🛠️ Technologies Used
+
+* HTML
+* CSS
+* JavaScript
+* LocalStorage
+* QR Code API
+* GitHub Pages (Deployment)
+
+---
+
+## 📁 Project Structure
 
 ```
-campus-canteen-preorder
+campus-canteen-preorder/
 │
-├── index.html
-├── login.html
-├── signup.html
-├── choose.html
-├── orders.html
-├── payment.html
-│
-├── script.js
-├── auth.js
-├── style.css
-│
+├── customer/        # Student interface
+├── admin/           # Admin dashboard
+├── asset/           # Images & resources
 └── README.md
 ```
 
 ---
 
-## How It Works
+## 🚀 Future Improvements
 
-1. Student logs in
-2. Selects a campus canteen
-3. Adds food items to cart
-4. Selects pickup slot
-5. Pays via QR or cash
-6. Receives a **token number**
-7. Uses token to collect food
+* 🔐 Secure Authentication (Firebase)
+* ⚡ Real-time Order Updates
+* 📊 Advanced Analytics Dashboard
+* 💳 Razorpay / UPI Integration
+* 📱 Mobile App Version
 
 ---
 
-## Future Improvements
+## 👨‍💻 Author
 
-- Admin dashboard for canteen staff
-- Real time order queue
-- Database integration
-- Razorpay / UPI payment gateway
-- Mobile app version
-
----
-
-## Author
-
-Shaik Farhan  
+**Shaik Farhan**
 BTech AI & ML Student
 
-GitHub: https://github.com/ker465
-
----
+🔗 GitHub: https://github.com/ker465
