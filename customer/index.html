@@ -382,7 +382,7 @@ const user=JSON.parse(localStorage.getItem("user"));
 
 <script>
 function applySession(){
-    const session=getCurrentSession();
+    const session= localStorage.getItem("activeSession") || "closed";
     const banner=document.getElementById("sessionBanner");
     const overlay=document.getElementById("closedOverlay");
     const cartPanel=document.querySelector(".cart-panel");
