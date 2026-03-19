@@ -20,7 +20,6 @@
         .badge-completed  { background: var(--light);      color: var(--muted); }
         .badge-completed::before { animation: none; }
 
-    
         .pill-count {
             display: inline-flex;
             align-items: center;
@@ -49,7 +48,24 @@
             animation: none;
         }
 
-        </style>
+        /* ── Enhanced queue tokens ── */
+        .queue-token {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 56px;
+            min-height: 56px;
+            border-radius: 14px;
+            padding: 6px 8px;
+            cursor: default;
+            transition: transform 0.15s;
+        }
+        .queue-token:hover { transform: scale(1.07); }
+        .queue-token .tok-num   { font-size: 1.1rem; font-weight: 900; line-height: 1; }
+        .queue-token .tok-status{ font-size: 0.52rem; font-weight: 700; opacity: 0.82; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+        .queue-token .tok-slot  { font-size: 0.5rem; opacity: 0.65; margin-top: 1px; }
+    </style>
 </head>
 <body>
 <script>(function(){if(localStorage.getItem("adminTheme")==="dark")document.body.classList.add("dark");})()</script>
@@ -101,7 +117,7 @@
                 <span>🔍</span>
                 <input type="text" id="searchInput" placeholder="Search orders..." oninput="render()">
             </div>
-<div class="admin-bell-wrap" id="adminBellWrap">
+            <div class="admin-bell-wrap" id="adminBellWrap">
                 <button class="admin-bell-btn" id="adminBellBtn" title="New Orders">
                     🔔
                     <div class="admin-bell-badge" id="adminBellBadge">0</div>
@@ -153,11 +169,11 @@
 
             <!-- Filter bar -->
             <div class="filter-bar">
-                <button class="filter-pill active" id="pill-All" onclick="setFilter('All',this)">All <span class="pill-count" id="cnt-All"></span></button>
-                <button class="filter-pill" id="pill-Pending" onclick="setFilter('Pending',this)">🕐 Pending <span class="pill-count" id="cnt-Pending"></span></button>
-                <button class="filter-pill" id="pill-Preparing" onclick="setFilter('Preparing',this)">🍳 Preparing <span class="pill-count" id="cnt-Preparing"></span></button>
-                <button class="filter-pill" id="pill-Ready" onclick="setFilter('Ready',this)">✅ Ready <span class="pill-count" id="cnt-Ready"></span></button>
-                <button class="filter-pill" id="pill-PickedUp" onclick="setFilter('Picked Up',this)">🛍 Picked Up <span class="pill-count" id="cnt-PickedUp"></span></button>
+                <button class="filter-pill active" id="pill-All"      onclick="setFilter('All',this)">All <span class="pill-count" id="cnt-All"></span></button>
+                <button class="filter-pill"         id="pill-Pending"  onclick="setFilter('Pending',this)">🕐 Pending <span class="pill-count" id="cnt-Pending"></span></button>
+                <button class="filter-pill"         id="pill-Preparing"onclick="setFilter('Preparing',this)">🍳 Preparing <span class="pill-count" id="cnt-Preparing"></span></button>
+                <button class="filter-pill"         id="pill-Ready"    onclick="setFilter('Ready',this)">✅ Ready <span class="pill-count" id="cnt-Ready"></span></button>
+                <button class="filter-pill"         id="pill-PickedUp" onclick="setFilter('Picked Up',this)">🛍 Picked Up <span class="pill-count" id="cnt-PickedUp"></span></button>
             </div>
 
             <!-- Main layout -->
@@ -235,20 +251,16 @@
         render();
     }
 
-    // ── Main render ───────────────────────────
-    // ── Action buttons — uses data-attributes to avoid all quote nesting ──
+    // ── Action buttons ────────────────────────
     function getActionBtns(status, orderID) {
-        var st  = status || "Pending";
+        var st   = status || "Pending";
         var lock = '<button class="btn btn-sm" disabled style="opacity:0.3;cursor:not-allowed;background:var(--light)">';
 
-        // ── Completed ──────────────────────────────────────────
         if (st === "Picked Up" || st === "Completed") {
             return '<span style="font-size:0.78rem;font-weight:700;color:var(--green);' +
                    'padding:6px 14px;background:var(--green-bg);border-radius:10px;' +
                    'display:inline-flex;align-items:center;gap:6px">✅ Order Complete</span>';
         }
-
-        // ── Ready → only Picked Up is active ──────────────────
         if (st === "Ready") {
             return [
                 lock + "🍳 Preparing</button>",
@@ -256,8 +268,6 @@
                 '<button class="btn btn-pink btn-sm" data-id="' + orderID + '" data-status="Picked Up" onclick="handleBtn(this)">🛍 Picked Up</button>'
             ].join(" ");
         }
-
-        // ── Preparing → only Ready is active ──────────────────
         if (st === "Preparing") {
             return [
                 lock + "🍳 Preparing</button>",
@@ -265,8 +275,6 @@
                 lock + "🛍 Picked Up</button>"
             ].join(" ");
         }
-
-        // ── Pending → only Preparing is active ────────────────
         return [
             '<button class="btn btn-ghost btn-sm" data-id="' + orderID + '" data-status="Preparing" onclick="handleBtn(this)">🍳 Preparing</button>',
             lock + "✅ Ready</button>",
@@ -280,7 +288,7 @@
 
     var _lastHash_admin_orders = "";
 
-    // ── Order Sorting (Priority: slot time → token number) ───
+    // ── Order Sorting ─────────────────────────
     function parseTimeToMinutes(timeStr) {
         if (!timeStr) return Infinity;
         let [time, modifier] = timeStr.split(" ");
@@ -293,18 +301,14 @@
 
     function sortOrdersByPriority(orders) {
         return [...orders].sort((a, b) => {
-            // 1️⃣ Time priority — earlier slot first
             const timeA = parseTimeToMinutes(a.slot);
             const timeB = parseTimeToMinutes(b.slot);
             if (timeA !== timeB) return timeA - timeB;
-            // 2️⃣ Token priority — lower token first
             return (a.tokenNumber || 0) - (b.tokenNumber || 0);
         });
     }
 
-    // Alias for backwards compat
     const sortOrders = sortOrdersByPriority;
-
 
     function updateFilterCounts() {
         var all      = getMyOrders();
@@ -330,7 +334,7 @@
     function render() {
         try {
             let orders = sortOrdersByPriority(getMyOrders());
-            // Hash check — skip re-render if nothing changed
+
             var _currHash = orders.map(function(o){ return o.orderID+o.orderStatus; }).join(",") + currentFilter + (document.getElementById("searchInput")?.value||"");
             if (typeof _ordersHash !== "undefined" && _currHash === _ordersHash) return;
             window._ordersHash = _currHash;
@@ -338,10 +342,8 @@
             if (_h === _lastHash_admin_orders && document.getElementById("ordersGrid").innerHTML !== "") { _lastHash_admin_orders=_h; }
             _lastHash_admin_orders = _h;
 
-            // Update filter pill counts
             updateFilterCounts();
 
-            // Pending badge in sidebar
             const pending = orders.filter(o => ["Pending", "Preparing"].includes(o.orderStatus));
             const pb = document.getElementById("pendingBadge");
             if (pb) {
@@ -349,7 +351,6 @@
                 else pb.style.display = "none";
             }
 
-            // Search filter
             const q = (document.getElementById("searchInput")?.value || "").toLowerCase().trim();
             if (q) {
                 orders = orders.filter(o =>
@@ -359,9 +360,13 @@
                 );
             }
 
-            // Status filter
+            // ✅ FIX: Correct filter logic for all statuses
             if (currentFilter !== "All") {
-                orders = orders.filter(o => o.orderStatus === currentFilter || (currentFilter === 'Picked Up'));
+                if (currentFilter === "Picked Up") {
+                    orders = orders.filter(o => ["Picked Up", "Completed"].includes(o.orderStatus));
+                } else {
+                    orders = orders.filter(o => o.orderStatus === currentFilter);
+                }
             }
 
             const grid = document.getElementById("ordersGrid");
@@ -377,7 +382,6 @@
                         </p>
                     </div>`;
             } else {
-                // Build priority badge based on sorted position
                 const priorityLabel = (orders, idx) => {
                     const active = orders.filter((x, j) => j <= idx && !["Picked Up","Completed"].includes(x.orderStatus));
                     const pos = active.length - 1;
@@ -438,35 +442,59 @@
                 }).join("");
             }
 
-            // ── Live Queue (priority sorted) ──────────────────
-            const allOrds   = sortOrdersByPriority(getMyOrders());
-            const active    = allOrds.filter(o => !["Picked Up","Completed"].includes(o.orderStatus));
-            const nowFirst  = active[0]; // 🔥 highest priority active order
-            const prep      = active.filter(o => ["Pending","Preparing"].includes(o.orderStatus));
-            const rdy       = active.filter(o => o.orderStatus === "Ready");
+            // ── Live Queue ────────────────────────────
+            const allOrds  = sortOrdersByPriority(getMyOrders());
+            const active   = allOrds.filter(o => !["Picked Up","Completed"].includes(o.orderStatus));
+            const nowFirst = active[0];
 
+            // Pending + Preparing go in left column, Ready in right column
+            const prep = active.filter(o => ["Pending","Preparing"].includes(o.orderStatus));
+            const rdy  = active.filter(o => o.orderStatus === "Ready");
+
+            // ✅ FIX: Now Serving shows token number + status + slot
             const nowEl = document.getElementById("nowServingNum");
             if (nowEl) {
                 if (nowFirst) {
-                    nowEl.innerHTML = `<div style='font-size:2rem;font-weight:900;line-height:1'>${nowFirst.tokenNumber}</div>` +
-                        `<div style='font-size:0.65rem;color:rgba(255,255,255,0.7);margin-top:3px'>${nowFirst.slot || ""}</div>`;
+                    nowEl.innerHTML =
+                        `<div style='font-size:2rem;font-weight:900;line-height:1'>${nowFirst.tokenNumber}</div>` +
+                        `<div style='font-size:0.65rem;color:rgba(255,255,255,0.75);margin-top:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em'>${nowFirst.orderStatus}</div>` +
+                        (nowFirst.slot ? `<div style='font-size:0.6rem;color:rgba(255,255,255,0.55);margin-top:2px'>${nowFirst.slot}</div>` : "");
                 } else {
                     nowEl.textContent = "–";
                 }
             }
 
+            // ✅ FIX: Queue tokens show token number + status label + slot
             const prepEl = document.getElementById("preparingTokens");
             const rdyEl  = document.getElementById("readyTokens");
-            if (prepEl) prepEl.innerHTML = prep.length
-                ? prep.map(o => `<div class="queue-token preparing" title="${o.slot || ''}">${o.tokenNumber}</div>`).join("")
-                : '<span style="font-size:0.78rem;color:var(--muted)">None</span>';
-            if (rdyEl) rdyEl.innerHTML = rdy.length
-                ? rdy.map(o => `<div class="queue-token ready" title="${o.slot || ''}">${o.tokenNumber}</div>`).join("")
-                : '<span style="font-size:0.78rem;color:var(--muted)">None</span>';
+
+            if (prepEl) {
+                prepEl.innerHTML = prep.length
+                    ? prep.map(o =>
+                        `<div class="queue-token preparing" title="Token #${o.tokenNumber} · ${o.slot || ''}">
+                            <div class="tok-num">${o.tokenNumber}</div>
+                            <div class="tok-status">${o.orderStatus}</div>
+                            ${o.slot ? `<div class="tok-slot">${o.slot}</div>` : ""}
+                        </div>`
+                      ).join("")
+                    : '<span style="font-size:0.78rem;color:var(--muted)">None</span>';
+            }
+
+            if (rdyEl) {
+                rdyEl.innerHTML = rdy.length
+                    ? rdy.map(o =>
+                        `<div class="queue-token ready" title="Token #${o.tokenNumber} · ${o.slot || ''}">
+                            <div class="tok-num">${o.tokenNumber}</div>
+                            <div class="tok-status">${o.orderStatus}</div>
+                            ${o.slot ? `<div class="tok-slot">${o.slot}</div>` : ""}
+                        </div>`
+                      ).join("")
+                    : '<span style="font-size:0.78rem;color:var(--muted)">None</span>';
+            }
 
             // Notif log
-            const notifs  = JSON.parse(localStorage.getItem(`notifications_${adminCanteen}`)) || [];
-            const logEl   = document.getElementById("notifLog");
+            const notifs = JSON.parse(localStorage.getItem(`notifications_${adminCanteen}`)) || [];
+            const logEl  = document.getElementById("notifLog");
             if (logEl) {
                 logEl.innerHTML = notifs.slice(0, 5).map(n =>
                     `<div class="notif-item">${n.msg}<div class="notif-time">${n.time || ""}</div></div>`
@@ -480,24 +508,21 @@
 
     // ── Actions ───────────────────────────────
     function setStatus(orderID, status) {
-        // Prevent any change if already Picked Up
-        const all = JSON.parse(localStorage.getItem("orders")) || [];
+        const all   = JSON.parse(localStorage.getItem("orders")) || [];
         const order = all.find(o => o.orderID === orderID);
         if (order && order.orderStatus === "Picked Up") {
             showToast("Order already picked up — cannot change", false);
             return;
         }
-        // Can only mark Completed if currently Ready
         if (status === "Picked Up" && order && order.orderStatus !== "Ready") {
             showToast("Mark as Ready first", false);
             return;
         }
         updateOrderStatus(orderID, status);
 
-        // ── Auto-notify student when order is Ready ──
         if (status === "Ready") {
             const allOrders = JSON.parse(localStorage.getItem("orders")) || [];
-            const order = allOrders.find(o => o.orderID === orderID);
+            const order     = allOrders.find(o => o.orderID === orderID);
             if (order) {
                 const msg = "🍽 Token #" + order.tokenNumber + " is ready for pickup! Please collect your order.";
                 sendNotification(msg);
@@ -517,33 +542,30 @@
         const sk = document.getElementById("skeleton");
         const ct = document.getElementById("realContent");
         if (!sk || !ct) return;
-        // Fade skeleton out
         sk.style.transition = "opacity 0.3s ease";
-        sk.style.opacity = "0";
+        sk.style.opacity    = "0";
         setTimeout(() => {
-            sk.style.display = "none";
-            ct.style.display = "block";
-            ct.style.animation = "fadeUp 0.35s ease both";
+            sk.style.display    = "none";
+            ct.style.display    = "block";
+            ct.style.animation  = "fadeUp 0.35s ease both";
         }, 300);
     }
 
     // ── Init ──────────────────────────────────
-    // Small delay so DOM is ready and fonts loaded
     setTimeout(() => {
         render();
         showContent();
     }, 150);
     setInterval(render, 2000);
 
-    // ── New Order Detection ────────────────────────────────────
+    // ── New Order Detection ───────────────────
     var lastKnownOrderIds = new Set(
         getMyOrders().map(function(o){ return o.orderID; })
     );
 
     function playAdminSound() {
         try {
-            var ctx = new (window.AudioContext || window.webkitAudioContext)();
-            // Urgent double-beep for new order
+            var ctx   = new (window.AudioContext || window.webkitAudioContext)();
             var tones = [
                 { freq: 880,  start: 0,    dur: 0.12 },
                 { freq: 880,  start: 0.16, dur: 0.12 },
@@ -571,20 +593,19 @@
     }
 
     function showNewOrderPopup(order) {
-        // Create popup if not exists
         var existing = document.getElementById("newOrderPopup");
         if (existing) existing.remove();
 
         var items = (order.items||[]).map(function(i){ return i.name + " ×" + i.quantity; }).join(", ");
         var popup = document.createElement("div");
-        popup.id = "newOrderPopup";
+        popup.id  = "newOrderPopup";
         popup.style.cssText = [
-            "position:fixed", "bottom:28px", "right:28px", "z-index:9999",
-            "background:var(--white)", "border:1.5px solid var(--green)",
-            "border-radius:18px", "padding:18px 22px", "max-width:320px",
+            "position:fixed","bottom:28px","right:28px","z-index:9999",
+            "background:var(--white)","border:1.5px solid var(--green)",
+            "border-radius:18px","padding:18px 22px","max-width:320px",
             "box-shadow:0 12px 48px rgba(0,0,0,0.3)",
             "animation:slideInRight 0.4s cubic-bezier(0.34,1.56,0.64,1) both",
-            "display:flex", "gap:14px", "align-items:flex-start"
+            "display:flex","gap:14px","align-items:flex-start"
         ].join(";");
 
         popup.innerHTML =
@@ -601,21 +622,19 @@
 
         document.body.appendChild(popup);
 
-        // Add slide-in animation if not already in CSS
         if (!document.getElementById("popupAnim")) {
             var style = document.createElement("style");
-            style.id = "popupAnim";
+            style.id  = "popupAnim";
             style.textContent = "@keyframes slideInRight{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}";
             document.head.appendChild(style);
         }
 
-        // Auto-dismiss after 8 seconds
         setTimeout(function() {
             var el = document.getElementById("newOrderPopup");
             if (el) {
                 el.style.transition = "opacity 0.4s, transform 0.4s";
-                el.style.opacity = "0";
-                el.style.transform = "translateX(60px)";
+                el.style.opacity    = "0";
+                el.style.transform  = "translateX(60px)";
                 setTimeout(function(){ if(el.parentNode) el.remove(); }, 400);
             }
         }, 8000);
@@ -623,21 +642,16 @@
 
     function checkNewOrders() {
         var current = getMyOrders();
-        var newOnes = current.filter(function(o){
-            return !lastKnownOrderIds.has(o.orderID);
-        });
+        var newOnes = current.filter(function(o){ return !lastKnownOrderIds.has(o.orderID); });
         newOnes.forEach(function(order) {
             lastKnownOrderIds.add(order.orderID);
             playAdminSound();
             showNewOrderPopup(order);
         });
-        // Keep set in sync
         current.forEach(function(o){ lastKnownOrderIds.add(o.orderID); });
     }
 
-    // Check for new orders every 2s (same cadence as render)
     setInterval(checkNewOrders, 2000);
-
 
 </script>
 
@@ -650,7 +664,6 @@ function toggleTheme() {
 </script>
 
 <script>
-
     // ══ ADMIN ORDER BELL ════════════════════════════════════════
     var bellOpen      = false;
     var bellReadIds   = JSON.parse(localStorage.getItem("adminBellReadIds") || "[]");
@@ -660,14 +673,12 @@ function toggleTheme() {
         return getMyOrders().slice().reverse().slice(0, 30);
     }
 
-
     let _bellDropHash = "";
     function renderBellDrop() {
-        var orders  = getBellOrders();
-        var listEl  = document.getElementById("bellDropList");
+        var orders = getBellOrders();
+        var listEl = document.getElementById("bellDropList");
         if (!listEl) return;
 
-        // Hash guard — skip if nothing changed
         var hash = orders.map(function(o){ return o.orderID + o.orderStatus + (bellReadIds.indexOf(o.orderID)===-1?"u":"r"); }).join(",");
         if (hash === _bellDropHash) return;
         _bellDropHash = hash;
@@ -718,7 +729,7 @@ function toggleTheme() {
     function clearBellOrders() {
         getBellOrders().forEach(function(o){ if(bellReadIds.indexOf(o.orderID)===-1) bellReadIds.push(o.orderID); });
         localStorage.setItem("adminBellReadIds", JSON.stringify(bellReadIds));
-        _bellDropHash = ""; // force re-render
+        _bellDropHash = "";
         updateAdminBell(); renderBellDrop();
     }
 
@@ -735,7 +746,6 @@ function toggleTheme() {
 
     updateAdminBell();
     setInterval(updateAdminBell, 2000);
-
 </script>
 </body>
 </html>
