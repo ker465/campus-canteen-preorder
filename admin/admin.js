@@ -153,11 +153,35 @@ function showToast(msg, success = true) {
     setTimeout(() => toast.classList.remove("show"), 3000);
 }
 
+// ── GLOBAL SIDEBAR PENDING BADGE ──────────────
+// Runs on every admin page automatically since admin.js is loaded everywhere.
+// Shows count of Pending + Preparing orders next to "Orders" in the sidebar.
+function updateSidebarBadge() {
+    var pb = document.getElementById("pendingBadge");
+    if (!pb) return;
+    var orders = (typeof getMyOrders === "function") ? getMyOrders() : [];
+    var count  = orders.filter(function(o) {
+        return o.orderStatus === "Pending" || o.orderStatus === "Preparing";
+    }).length;
+    if (count > 0) {
+        pb.textContent   = count;
+        pb.style.display = "";
+    } else {
+        pb.style.display = "none";
+    }
+}
+
 // ── INIT ───────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", function() {
     applyBranding();
+
+    // Set active nav link based on current page
     const page = window.location.pathname.split("/").pop();
-    document.querySelectorAll(".nav-link[href]").forEach(link => {
+    document.querySelectorAll(".nav-link[href]").forEach(function(link) {
         link.classList.toggle("active", link.getAttribute("href") === page);
     });
+
+    // Run badge immediately + keep it live every 3 seconds on all pages
+    updateSidebarBadge();
+    setInterval(updateSidebarBadge, 3000);
 });
